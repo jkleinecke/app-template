@@ -1,7 +1,18 @@
 #ifndef BASE_H_
 #define BASE_H_
 
+#if !defined(NDEBUG)
+#define INTERNAL_BUILD 1
+#define ENABLE_ASSERT 1
+#endif
 
+#if !defined(INTERNAL_BUILD)
+#define INTERNAL_BUILD 0
+#endif
+
+#if !defined(ENABLE_ASSERT)
+#define ENABLE_ASSERT 0
+#endif
 
 // Context Cracking
 #ifdef _WIN32
@@ -142,7 +153,102 @@ enum Arch
     #define ARCH_ENUM kArch_ARM64
 #endif
 
+//=====================
+// Utility Macros
+//=====================
+
+#define Stmnt(S) do{ S }while(0)
+
+#if ENABLE_ASSERT
+    #if !defined(AssertBreak)
+        #define AssertBreak() (*(volatile int*)0 = 0)
+    #endif
+    #define Assert(c) Stmnt( if(!c){ AssertBreak(); })
+#else
+    #define AssertBreak()
+    #define Assert(c)
+#endif
+
+#define StaticAssert(c,l) typedef U8 Glue(l,__LINE__) [(c)?1:-1]
+
+#define Stringify_(S) #S
+#define Stringify(S) Stringify_(S)
+#define Glue_(A,B) A##B
+#define Glue(A,B) Glue_(A,B)
+
+#define ArrayCount(a) (sizeof(a)/sizeof(*(a)))
+
+#define IntFromPtr(p) (U64)((U8*)p - (U8*)0)
+#define PtrFromInt(n) (void*)((U8*)0 + (n))
+
+#define Member(T,m) (((T*)0)->m)
+#define OffsetOfMember(T,m) IntFromPtr(&Member(T,m))
+
+
+#define Min(a,b) (((a)<(b))?(a):(b))
+#define Max(a,b) (((a)>(b))?(a):(b))
+#define Clamp(a,x,b) (((x)<(a))?(a):\
+((b)<(x))?(b):(x))
+#define ClampTop(a,b) Min(a,b)
+#define ClampBot(a,b) Max(a,b)
+
+#define AlignUpPow2(x,p) (((x) + (p) - 1)&~((p) - 1))
+#define AlignDownPow2(x,p) ((x)&~((p) - 1))
+
+#define KB(x) ((x) << 10)
+#define MB(x) ((x) << 20)
+#define GB(x) ((x) << 30)
+#define TB(x) ((x) << 40)
+
+#define Thousand(x) ((x)*1000)
+#define Million(x)  ((x)*1000000llu)
+#define Billion(x)  ((x)*1000000000llu)
+#define Trillion(x) ((x)*1000000000000llu)
+
+#define global static
+#define local  static
+#define function static
+
+#if COMPILER_CL
+# define threadvar __declspec(thread)
+#elif COMPILER_CLANG || COMPILER_GCC
+# define threadvar __thread
+#else
+# error threadvar defined for this compiler
+#endif
+
+#define c_linkage_begin extern "C"{
+#define c_linkage_end   }
+#define c_linkage extern "C"
+
+#if COMPILER_CL
+# define shared_export __declspec(dllexport)
+#elif COMPILER_CLANG || COMPILER_GCC
+# define shared_export __attribute__((dllexport))
+#else
+# error shared_export not defined for this compiler
+#endif
+
+#define shared_function c_linkage shared_export
+
+#include <string.h>
+#define MemoryZero(p,z) memset((p), 0, (z))
+#define MemoryZeroStruct(p) MemoryZero((p), sizeof(*(p)))
+#define MemoryZeroArray(p)  MemoryZero((p), sizeof(p))
+#define MemoryZeroTyped(p,c) MemoryZero((p), sizeof(*(p))*(c))
+
+#define MemoryMatch(a,b,z) (memcmp((a),(b),(z)) == 0)
+
+#define MemoryCopy(d,s,z) memmove((d), (s), (z))
+#define MemoryCopyStruct(d,s) MemoryCopy((d),(s),\
+Min(sizeof(*(d)),sizeof(*(s))))
+#define MemoryCopyArray(d,s)  MemoryCopy((d),(s),Min(sizeof(s),sizeof(d)))
+#define MemoryCopyTyped(d,s,c) MemoryCopy((d),(s),\
+Min(sizeof(*(d)),sizeof(*(s)))*(c))
+
+//=====================
 // Basic Types
+//=====================
 
 #include <stdint.h>
 
@@ -154,5 +260,11 @@ typedef uint8_t     U8;
 typedef uint16_t    U16;
 typedef uint32_t    U32;
 typedef uint64_t    U64;
+typedef S8          B8;
+typedef S16         B16;
+typedef S32         B32;
+typedef S64         B64;
+typedef float       F32;
+typedef double      F64;
 
 #endif
