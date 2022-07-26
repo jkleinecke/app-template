@@ -14,15 +14,32 @@
     #error "Failed to detect operating system!"
 #endif
 
+/* Version is 0xVVRRPPPP */
+#define PREDEF_VERSION(v,r,p) (v * 1000000 + r * 10000 + p)
+
 #ifdef _MSC_VER
     #define COMPILER_CL 1
-    #define COMPILER_VERSION _MSC_FULL_VER
+    #if defined(_MSC_FULL_VER)
+    // 193231332
+    // 193  
+    // 23
+    // 1332
+    # define COMPILER_VERSION PREDEF_VERSION(_MSC_FULL_VER / 1000000, (_MSC_FULL_VER % 1000000) / 10000, _MSC_FULL_VER % 10000)
+    #else
+    # if defined(_MSC_VER)
+    #  define COMPILER_VERSION PREDEF_VERSION(_MSC_VER / 100, _MSC_VER % 100, 0)
+    # endif
+    #endif
 #elif __clang__
     #define COMPILER_CLANG 1
-    #define COMPILER_VERSION __clang_version__
+    #define COMPILER_VERSION PREDEF_VERSION(__clang_major__,__clang_minor__,__clang_patchlevel__) 
 #elif __GNUC__
     #define COMPILER_GCC 1
-    #define COMPILER_VERSION __GNUC_VERSION__
+    # if defined(__GNUC_PATCHLEVEL__)
+    #  define COMPILER_VERSION PREDEF_VERSION(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__)
+    # else
+    #  define COMPILER_VERSION PREDEF_VERSION(__GNUC__, __GNUC_MINOR__, 0)
+    # endif
 #else
     #error "Failed to detect compiler!"
 #endif
@@ -124,5 +141,18 @@ enum Arch
 #elif ARCH_ARM64
     #define ARCH_ENUM kArch_ARM64
 #endif
+
+// Basic Types
+
+#include <stdint.h>
+
+typedef int8_t      S8;
+typedef int16_t     S16;
+typedef int32_t     S32;
+typedef int64_t     S64;
+typedef uint8_t     U8;
+typedef uint16_t    U16;
+typedef uint32_t    U32;
+typedef uint64_t    U64;
 
 #endif

@@ -45,7 +45,7 @@ const char* compiler_name(Compiler eCompiler = COMPILER_ENUM)
     return "";
 }
 
-const char* compiler_version()
+U32 compiler_version()
 {
     return COMPILER_VERSION;
 }
