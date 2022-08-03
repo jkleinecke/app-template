@@ -4,8 +4,8 @@ Bare-bones app template for starting application development
 # Base Layer
 
 * Context Cracking
-* (TODO) Utility Macros
-* (TODO) Basic Types
+* Utility Macros
+* Basic Types
 * (TODO) Memory
 * (TODO) Strings
 

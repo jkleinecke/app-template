@@ -102,56 +102,6 @@
 #define ARCH_ARM64 0
 #endif
 
-enum OperatingSystem
-{
-    kOS_Null,
-    kOS_Windows,
-    kOS_MacOS,
-    kOS_Linux
-};
-
-enum Compiler
-{
-    kCompiler_Null,
-    kCompiler_CL,
-    kCompiler_Clang,
-    kCompiler_GCC
-};
-
-enum Arch
-{
-    kArch_Null,
-    kArch_x86,
-    kArch_x64,
-    kArch_ARM,
-    kArch_ARM64
-};
-
-#if OS_WINDOWS
-    #define OS_ENUM kOS_Windows
-#elif OS_MACOS
-    #define OS_ENUM kOS_MacOS
-#elif OS_LINUX
-    #define OS_ENUM kOS_Linux
-#endif
-
-#if COMPILER_CL
-    #define COMPILER_ENUM kCompiler_CL
-#elif COMPILER_CLANG
-    #define COMPILER_ENUM kCompiler_Clang
-#elif COMPILER_GCC
-    #define COMPILER_ENUM kCompiler_GCC
-#endif
-
-#if ARCH_X86
-    #define ARCH_ENUM kArch_x86
-#elif ARCH_X64
-    #define ARCH_ENUM kArch_x64
-#elif ARCH_ARM
-    #define ARCH_ENUM kArch_ARM
-#elif ARCH_ARM64
-    #define ARCH_ENUM kArch_ARM64
-#endif
 
 //=====================
 // Utility Macros
@@ -246,6 +196,49 @@ Min(sizeof(*(d)),sizeof(*(s))))
 #define MemoryCopyTyped(d,s,c) MemoryCopy((d),(s),\
 Min(sizeof(*(d)),sizeof(*(s)))*(c))
 
+////////////////////////////////
+// Linked List Macros
+
+#define DLLPushBack_NP(f,l,n,next,prev) ((f)==0?\
+((f)=(l)=(n),(n)->next=(n)->prev=0):\
+((n)->prev=(l),(l)->next=(n),(l)=(n),(n)->next=0))
+#define DLLPushBack(f,l,n) DLLPushBack_NP(f,l,n,next,prev)
+
+#define DLLPushFront(f,l,n) DLLPushBack_NP(l,f,n,prev,next)
+
+#define DLLRemove_NP(f,l,n,next,prev) ((f)==(n)?\
+((f)==(l)?\
+((f)=(l)=(0)):\
+((f)=(f)->next,(f)->prev=0)):\
+(l)==(n)?\
+((l)=(l)->prev,(l)->next=0):\
+((n)->next->prev=(n)->prev,\
+(n)->prev->next=(n)->next))
+#define DLLRemove(f,l,n) DLLRemove_NP(f,l,n,next,prev)
+
+#define SLLQueuePush_N(f,l,n,next) ((f)==0?\
+(f)=(l)=(n):\
+((l)->next=(n),(l)=(n)),\
+(n)->next=0)
+#define SLLQueuePush(f,l,n) SLLQueuePush_N(f,l,n,next)
+
+#define SLLQueuePushFront_N(f,l,n,next) ((f)==0?\
+((f)=(l)=(n),(n)->next=0):\
+((n)->next=(f),(f)=(n)))
+#define SLLQueuePushFront(f,l,n) SLLQueuePushFront_N(f,l,n,next)
+
+#define SLLQueuePop_N(f,l,next) ((f)==(l)?\
+(f)=(l)=0:\
+(f)=(f)->next)
+#define SLLQueuePop(f,l) SLLQueuePop_N(f,l,next)
+
+#define SLLStackPush_N(f,n,next) ((n)->next=(f),(f)=(n))
+#define SLLStackPush(f,n) SLLStackPush_N(f,n,next)
+
+#define SLLStackPop_N(f,next) ((f)==0?0:\
+(f)=(f)->next)
+#define SLLStackPop(f) SLLStackPop_N(f,next)
+
 //=====================
 // Basic Types
 //=====================
@@ -266,5 +259,145 @@ typedef S32         B32;
 typedef S64         B64;
 typedef float       F32;
 typedef double      F64;
+
+//=====================
+// Variadic Functions
+//=====================
+
+#include <stdarg.h>
+
+//=====================
+// Basic Constants
+//=====================
+
+global S8  min_S8  = (S8) 0x80;
+global S16 min_S16 = (S16)0x8000;
+global S32 min_S32 = (S32)0x80000000;
+global S64 min_S64 = (S64)0x8000000000000000llu;
+
+global S8  max_S8  = (S8) 0x7f;
+global S16 max_S16 = (S16)0x7fff;
+global S32 max_S32 = (S32)0x7fffffff;
+global S64 max_S64 = (S64)0x7fffffffffffffffllu;
+
+global U8  max_U8  = 0xff;
+global U16 max_U16 = 0xffff;
+global U32 max_U32 = 0xffffffff;
+global U64 max_U64 = 0xffffffffffffffffllu;
+
+global F32 machine_epsilon_F32 = 1.1920929e-7f;
+global F32 pi_F32  = 3.14159265359f;
+global F32 tau_F32 = 6.28318530718f;
+global F32 e_F32 = 2.71828182846f;
+global F32 gold_big_F32 = 1.61803398875f;
+global F32 gold_small_F32 = 0.61803398875f;
+
+global F64 machine_epsilon_F64 = 2.220446e-16;
+global F64 pi_F64  = 3.14159265359;
+global F64 tau_F64 = 6.28318530718;
+global F64 e_F64 = 2.71828182846;
+global F64 gold_big_F64 = 1.61803398875;
+global F64 gold_small_F64 = 0.61803398875;
+
+//=====================
+// Symbolic Constants
+//=====================
+
+enum Axis
+{
+    kAxis_X,
+    kAxis_Y,
+    kAxis_Z,
+    kAxis_W
+};
+
+enum Side
+{
+    kSide_Min,
+    kSide_Max
+};
+
+enum OperatingSystem
+{
+    kOS_Null,
+    kOS_Windows,
+    kOS_MacOS,
+    kOS_Linux
+};
+
+enum Compiler
+{
+    kCompiler_Null,
+    kCompiler_CL,
+    kCompiler_Clang,
+    kCompiler_GCC
+};
+
+enum Arch
+{
+    kArch_Null,
+    kArch_x86,
+    kArch_x64,
+    kArch_ARM,
+    kArch_ARM64
+};
+
+enum Month
+{
+    kMonth_Jan,
+    kMonth_Feb,
+    kMonth_Mar,
+    kMonth_Apr,
+    kMonth_May,
+    kMonth_June,
+    kMonth_July,
+    kMonth_Aug,
+    kMonth_Sept,
+    kMonth_Oct,
+    kMonth_Nov,
+    kMonth_Dec
+};
+
+enum DayOfWeek
+{
+    kDayOfWeek_Sunday,
+    kDayOfWeek_Monday,
+    kDayOfWeek_Tuesday,
+    kDayOfWeek_Wednesday,
+    kDayOfWeek_Thursday,
+    kDayOfWeek_Friday,
+    kDayOfWeek_Saturday
+};
+
+
+//=====================
+// Time
+//=====================
+
+typedef U64 DenseTime;
+
+struct DateTime
+{
+    U16 msec;   // [0,999]
+    U8 sec;     // [0,60]
+    U8 min;     // [0,60]
+    U8 hour;    // [0,23]
+    U8 day;     // [1,31]
+    U8 month;   // [1,12]
+    S16 year;   // 1 = 1 CE; 2020 = 2020 CE; 0 = 1 BCE; -100 = 101 BCE; etc.
+};
+
+////////////////////////////////
+// Symbolic Constant Functions
+
+function OperatingSystem operating_system_from_context(void);
+function Compiler compiler_from_context(void);
+function Arch arch_from_context(void);
+
+function const char* string_from_operating_system(OperatingSystem os);
+function const char* string_from_compiler(Compiler compiler);
+function const char* string_from_architecture(Arch arch);
+function const char* string_from_month(Month month);
+function const char* string_from_day_of_week(DayOfWeek day_of_week);
 
 #endif
