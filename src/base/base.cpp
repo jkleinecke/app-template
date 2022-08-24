@@ -67,7 +67,7 @@ function const char* string_from_compiler(Compiler compiler)
     return "";
 }
 
-U32 compiler_version()
+function const char* compiler_version()
 {
     return COMPILER_VERSION;
 }

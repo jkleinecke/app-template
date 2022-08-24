@@ -26,7 +26,8 @@
 #endif
 
 /* Version is 0xVVRRPPPP */
-#define PREDEF_VERSION(v,r,p) (v * 1000000 + r * 10000 + p)
+// #define PREDEF_VERSION(v,r,p) (v * 1000000 + r * 10000 + p)
+#define PREDEF_VERSION(v,r,p) Stringify(v.r.p)
 
 #ifdef _MSC_VER
     #define COMPILER_CL 1
@@ -35,10 +36,11 @@
     // 193  
     // 23
     // 1332
-    # define COMPILER_VERSION PREDEF_VERSION(_MSC_FULL_VER / 1000000, (_MSC_FULL_VER % 1000000) / 10000, _MSC_FULL_VER % 10000)
+    // # define COMPILER_VERSION PREDEF_VERSION(_MSC_FULL_VER / 1000000, (_MSC_FULL_VER % 1000000) / 10000, _MSC_FULL_VER % 10000)
+    # define COMPILER_VERSION Stringify(_MSC_FULL_VER)
     #else
     # if defined(_MSC_VER)
-    #  define COMPILER_VERSION PREDEF_VERSION(_MSC_VER / 100, _MSC_VER % 100, 0)
+    #  define COMPILER_VERSION Stringify(_MSC_VER)
     # endif
     #endif
 #elif __clang__

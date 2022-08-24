@@ -1,4 +1,7 @@
 #include "base.cpp"
+#include "base_default_memory.h"
+#include "base_memory.h"
+#include "base_memory.cpp"
 #include "stdio.h"
 
 #define TEST_PRINT(func) printf(Stringify(func)": %s\n", func)
@@ -6,7 +9,7 @@
 int main(int argc, char** argv)
 {
     printf("Operation System: %s\n", string_from_operating_system(operating_system_from_context()));
-    printf("Compiler: %s %u\n", string_from_compiler(compiler_from_context()), compiler_version());
+    printf("Compiler: %s %s\n", string_from_compiler(compiler_from_context()), compiler_version());
     printf("Architecture: %s\n", string_from_architecture(arch_from_context()));
 
     TEST_PRINT(string_from_operating_system(kOS_Windows));

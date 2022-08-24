@@ -6,7 +6,7 @@ Bare-bones app template for starting application development
 * Context Cracking
 * Utility Macros
 * Basic Types
-* (TODO) Memory
+* Memory
 * (TODO) Strings
 
 # OS Layer
