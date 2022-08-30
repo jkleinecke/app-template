@@ -55,6 +55,7 @@ function void       m_arena_align(M_Arena* arena, U64 pow2_align);
 function void       m_arena_align_zero(M_Arena* arena, U64 pow2_align);
 function void       m_arena_pop_amount(M_Arena* arena, U64 amount);
 
+#define push_struct(a,T) (T*)m_arena_push((a), sizeof(T))
 #define push_array(a,T,c) (T*)m_arena_push((a), sizeof(T)*(c))
 #define push_array_zero(a,T,c) (T*)m_arena_push_zero((a), sizeof(T)*(c))
 

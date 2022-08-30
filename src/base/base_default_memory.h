@@ -12,7 +12,7 @@
 #endif
 #if !defined(m_decommit)
 // # define m_decommit os_memory_decommit
-# define m_decommit 
+# define m_decommit(p,s) 
 #endif
 #if !defined(m_release)
 // # define m_release os_memory_release

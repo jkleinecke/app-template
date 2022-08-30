@@ -115,7 +115,7 @@
     #if !defined(AssertBreak)
         #define AssertBreak() (*(volatile int*)0 = 0)
     #endif
-    #define Assert(c) Stmnt( if(!c){ AssertBreak(); })
+    #define Assert(c) Stmnt( if(!(c)){ AssertBreak(); })
 #else
     #define AssertBreak()
     #define Assert(c)
