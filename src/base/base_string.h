@@ -75,7 +75,7 @@ function U8 str8_char_lowercase(U8 c);
 
 function String8 str8(U8 *str, U64 size);
 function String8 str8_range(U8 *first, U8 *opl);
-function String8 str8_cstring(U8* str);
+function String8 str8_cstring(U8* cstr);
 
 #define str8_lit(s) str8((U8*)(s), sizeof(s)-1)
 #define str8_typed(s) str8((U8*)(s), sizeof(*(s)))
