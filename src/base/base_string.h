@@ -105,4 +105,37 @@ function String8 str8_push_copy(M_Arena *arena, String8 string);
 function String16 str16(U16 *str, U64 size);
 function String16 str16_cstring(U16 *cstr);
 
+//=========================
+// String Path Helpers
+//=========================
+
+function String8 str8_chop_last_slash(String8 string);
+
+//=========================
+// String Comparison
+//=========================
+
+function B32 str8_match(String8 str1, String8 str2, StringMatchFlags flags);
+
+//=========================
+// Unicode Functions
+//=========================
+
+function StringDecode str_decode_utf8(U8 *str, U32 cap);
+function U32          str_encode_utf8(U8 *dst, U32 codepoint);
+function StringDecode str_decode_utf16(U16 *str, U32 cap);
+function U32          str_encode_utf16(U16 *dst, U32 codepoint);
+
+function String32     str32_from_str8(M_Arena *arena, String8 string);
+function String8      str8_from_str32(M_Arena *arena, String32 string);
+function String16     str16_from_str8(M_Arena *arena, String8 string);
+function String8      str8_from_str16(M_Arena *arena, String16 string);
+
+//=========================
+// String Serialization
+//=========================
+
+function B32 str8_read(String8 data, U64 off, void *dst, U64 size);
+#define str8_read_typed(d,o,p) str8_read((d), (o), p, sizeof(*(p)))
+
 #endif // BASE_STRING_H
