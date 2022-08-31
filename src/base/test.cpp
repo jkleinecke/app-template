@@ -3,8 +3,8 @@
 #include "base_memory.h"
 #include "base_memory.cpp"
 #include "base_string.h"
-#include "base_string.cpp"
 #include "stdio.h"
+#include "base_string.cpp"
 
 #define TEST_PRINT(func) printf(Stringify(func)": %s\n", func)
 

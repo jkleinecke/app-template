@@ -1,5 +1,9 @@
 # app-template
-Bare-bones app template for starting application development
+Bare-bones app template for starting application development.
+
+Build using CMake + Ninja.
+
+Windows: Run ninja from the visual studio command prompt.
 
 # Base Layer
 
@@ -7,7 +11,7 @@ Bare-bones app template for starting application development
 * Utility Macros
 * Basic Types
 * Memory
-* (TODO) Strings
+* Strings
 
 # OS Layer
 
