@@ -1,10 +1,5 @@
-#include "base.cpp"
-#include "base_default_memory.h"
-#include "base_memory.h"
-#include "base_memory.cpp"
-#include "base_string.h"
-#include "stdio.h"
-#include "base_string.cpp"
+#include "base_inc.h"
+#include "base_inc.cpp"
 
 #define TEST_PRINT(func) printf(Stringify(func)": %s\n", func)
 

@@ -6,7 +6,7 @@ set(CMAKE_C_STANDARD 17)
 
 
 set(APP_FILES
-    src/base/test.cpp
+   src/os/test.cpp
 )
 
 add_executable(app ${APP_FILES})

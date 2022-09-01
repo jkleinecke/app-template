@@ -1,4 +1,3 @@
-#include "base.h"
 
 function OperatingSystem operating_system_from_context(void)
 {

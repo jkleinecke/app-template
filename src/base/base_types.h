@@ -1,5 +1,5 @@
-#ifndef BASE_H_
-#define BASE_H_
+#ifndef BASE_TYPES_H_
+#define BASE_TYPES_H_
 
 #if !defined(NDEBUG)
 #define INTERNAL_BUILD 1
@@ -262,6 +262,8 @@ typedef S64         B64;
 typedef float       F32;
 typedef double      F64;
 
+typedef void VoidFunc(void);
+
 //=====================
 // Variadic Functions
 //=====================
@@ -387,6 +389,32 @@ struct DateTime
     U8 day;     // [1,31]
     U8 month;   // [1,12]
     S16 year;   // 1 = 1 CE; 2020 = 2020 CE; 0 = 1 BCE; -100 = 101 BCE; etc.
+};
+
+////////////////////////////////
+// File Properties
+
+typedef U32 DataAccessFlags;
+enum
+{
+    DataAccessFlag_Read     = (1 << 0),
+    DataAccessFlag_Write    = (1 << 1),
+    DataAccessFlag_Execute  = (1 << 2),
+};
+
+typedef U32 FilePropertyFlags;
+enum
+{
+    FilePropertyFlag_IsFolder = (1 << 0),
+};
+
+struct FileProperties
+{
+    U64 size;
+    FilePropertyFlags flags;
+    DenseTime create_time;
+    DenseTime modify_time;
+    DataAccessFlags access;
 };
 
 ////////////////////////////////
