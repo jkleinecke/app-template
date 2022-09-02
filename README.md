@@ -12,12 +12,13 @@ Windows: Run ninja from the visual studio command prompt.
 * Basic Types
 * Memory
 * Strings
+* (TODO) Math
 
 # OS Layer
 
-* (TODO) Setup
-* (TODO) Memory
-* (TODO) File Handling
-* (TODO) Time
-* (TODO) Libraries
-* (TODO) Entropy
+* Setup
+* Memory
+* File Handling
+* Time
+* Libraries
+* Entropy

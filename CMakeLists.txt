@@ -10,3 +10,5 @@ set(APP_FILES
 )
 
 add_executable(app ${APP_FILES})
+
+target_link_libraries(app Winmm.lib Userenv.lib)

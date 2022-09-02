@@ -51,7 +51,7 @@ function void        os_file_iter_end(OS_FileIter *iter);
 function String8 os_file_path(M_Arena *arena, OS_SystemPath path);
 
 //=======================
-// File Handling
+// Time
 //=======================
 
 function DateTime os_time_utc_now(void);
