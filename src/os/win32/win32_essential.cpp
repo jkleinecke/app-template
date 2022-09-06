@@ -79,7 +79,7 @@ function void os_main_init(int argc, char **argv)
 
         if(buffer != 0)
         {
-            win32_user_path = str8_from_str16(win32_perm_arena, str16_cstring(buffer));
+            win32_user_path = str8_from_str16(win32_perm_arena, str16(buffer, cap));
         }
     }
 

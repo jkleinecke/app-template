@@ -1,5 +1,8 @@
 #include "base_inc.h"
+#include "../os/os_inc.h"
+
 #include "base_inc.cpp"
+#include "../os/os_inc.cpp"
 
 #define TEST_PRINT(func) printf(Stringify(func)": %s\n", func)
 

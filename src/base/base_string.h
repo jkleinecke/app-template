@@ -35,7 +35,8 @@ struct StringJoin
 typedef U32 StringMatchFlags;
 enum
 {
-    kStringMatchFlags_NoCase
+    kStringMatchFlags_Exact = 0,
+    kStringMatchFlags_NoCase = (1 << 0),
 };
 
 struct String16
