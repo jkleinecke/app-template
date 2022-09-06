@@ -16,11 +16,15 @@ int main(int argc, char **argv)
 {
     os_main_init(argc, argv);
 
-    TEST_PRINT(win32_binary_path.str);
-    TEST_PRINT(win32_user_path.str);
-    TEST_PRINT(win32_temp_path.str);
+    M_ArenaTemp scratch = m_get_scratch(0,0);
 
-    for(String8Node *node = win32_cmd_line.first; node != 0; node = node->next)
+    TEST_PRINT(os_file_path(scratch.arena, kOS_SystemPath_CurrentDir).str);
+    TEST_PRINT(os_file_path(scratch.arena, kOS_SystemPath_Bin).str);
+    TEST_PRINT(os_file_path(scratch.arena, kOS_SystemPath_Temp).str);
+    TEST_PRINT(os_file_path(scratch.arena, kOS_SystemPath_User).str);
+
+    String8List listCmdArgs = os_command_line_args();
+    for(String8Node *node = listCmdArgs.first; node != 0; node = node->next)
     {
         printf("Command Line Arg: %s\n", node->string.str);
     }
@@ -30,14 +34,16 @@ int main(int argc, char **argv)
     B32 result = os_file_write(str8_lit("test.txt"), filedata);
     printf("File Write Result: %d\n", result);
 
-    M_Arena* arena = m_alloc_arena();
+    {
+        M_Arena* arena = m_alloc_arena();
 
-    String8 readdata = os_file_read(arena, str8_lit("test.txt"));
-    printf("File Read Result: %s\n", readdata.str);
-    result = str8_match(filedata, readdata, 0);
-    printf("Read data match result: %d\n", result);
+        String8 readdata = os_file_read(arena, str8_lit("test.txt"));
+        printf("File Read Result: %s\n", readdata.str);
+        result = str8_match(filedata, readdata, 0);
+        printf("Read data match result: %d\n", result);
 
-    m_arena_release(arena);
+        m_arena_release(arena);
+    }
 
     return 0;
 }
