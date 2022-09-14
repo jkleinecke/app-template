@@ -15,7 +15,7 @@ endif()
 
 if(WIN32)
    set(CMAKE_WIN32_EXECUTABLE ON)
-   set(OS_LIBS Winmm.lib Userenv.lib)
+   set(OS_LIBS Winmm.lib Userenv.lib opengl32.lib)
 elseif(APPLE)
    set(CMAKE_MACOSX_BUNDLE ON)
    set(OS_LIBS )

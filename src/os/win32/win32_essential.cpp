@@ -8,12 +8,19 @@ global String8 win32_temp_path = {};
 
 global String8List win32_cmd_line = {};
 
+global HINSTANCE win32_main_instance = 0;
+
 //==================
 // Init
 //==================
 
 function void os_main_init(int argc, char **argv)
 {
+    if(!win32_main_instance)
+    {
+        win32_main_instance = GetModuleHandle(0);
+    }
+
     // precision time setup
     LARGE_INTEGER perf_freq = {};
     if(QueryPerformanceFrequency(&perf_freq))
@@ -104,6 +111,7 @@ function void os_main_init(int argc, char **argv)
 
 function void win32_WinMain_init(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
+    win32_main_instance = hInstance;
     int argc = __argc;
     char **argv = __argv;
     os_main_init(argc, argv);
