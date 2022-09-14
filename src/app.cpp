@@ -270,7 +270,8 @@ int app_main(void)
 
     // actually make the window visible
     ShowWindow(mainWindow, SW_SHOW);
-    HGLRC glcontent = Win32InitOpenGL(hdc);
+    HGLRC glcontext = Win32InitOpenGL(hdc);
+    wglMakeCurrent(hdc, glcontext);
     wglSwapIntervalEXT(1);  // v-sync on...
 
     // message pump
@@ -291,6 +292,7 @@ int app_main(void)
                     break;
             }
         }
+        
 
         RECT rc;
         GetClientRect(mainWindow, &rc);
@@ -303,6 +305,8 @@ int app_main(void)
         SwapBuffers(hdc);   // swap main gl buffer to screen
     }
 
+    wglMakeCurrent(NULL,NULL);
+    wglDeleteContext(glcontext);
     DestroyWindow(mainWindow);
 
     return(0);
