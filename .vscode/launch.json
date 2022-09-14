@@ -5,18 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "lldb",
+            "type": "cppvsdbg",
             "request": "launch",
             "name": "Debug",
             "args": [],
             "cwd": "${workspaceFolder}",
-            "windows": {
-                "program": "${workspaceFolder}/build/app-debug/app.exe"
-            },
+            "program": "${workspaceFolder}/build/app-debug/app.exe",
             "osx": {
+                "type": "lldb",
                 "program": "${workspaceFolder}/build/app-debug/app"
             },
             "linux": {
+                "type": "lldb",
                 "program": "${workspaceFolder}/build/app-debug/app"
             }
         }

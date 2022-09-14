@@ -9,6 +9,8 @@ enum OS_SystemPath
     kOS_SystemPath_Temp
 };
 
+int app_main(void);
+
 //=======================
 // Setup 
 //=======================

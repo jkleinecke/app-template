@@ -158,6 +158,6 @@ function DateTime date_time_from_dense_time(DenseTime in)
     result.month = (in%12) + 1;
     in /= 12;
     S32 year_encoded = (S32)in;
-    result.year = (year_encoded - 0x8000);
+    result.year = (S16)(year_encoded - 0x8000);
     return(result);
 }

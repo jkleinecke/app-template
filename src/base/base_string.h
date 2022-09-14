@@ -122,9 +122,9 @@ function B32 str8_match(String8 str1, String8 str2, StringMatchFlags flags);
 // Unicode Functions
 //=========================
 
-function StringDecode str_decode_utf8(U8 *str, U32 cap);
+function StringDecode str_decode_utf8(U8 *str, U64 cap);
 function U32          str_encode_utf8(U8 *dst, U32 codepoint);
-function StringDecode str_decode_utf16(U16 *str, U32 cap);
+function StringDecode str_decode_utf16(U16 *str, U64 cap);
 function U32          str_encode_utf16(U16 *dst, U32 codepoint);
 
 function String32     str32_from_str8(M_Arena *arena, String8 string);

@@ -150,11 +150,11 @@ function DateTime win32_date_time_from_system_time(SYSTEMTIME *in)
     DateTime result = {};
     result.year = in->wYear;
     result.month = (U8)in->wMonth;
-    result.day = in->wDay;
-    result.hour = in->wHour;
-    result.min = in->wMinute;
-    result.sec = in->wSecond;
-    result.msec = in->wMilliseconds;
+    result.day = (U8)in->wDay;
+    result.hour = (U8)in->wHour;
+    result.min = (U8)in->wMinute;
+    result.sec = (U8)in->wSecond;
+    result.msec = (U8)in->wMilliseconds;
     return(result);
 }
 
@@ -326,7 +326,7 @@ function B32 os_file_write(String8 file_name, String8List data)
             for(;ptr < opl;)
             {
                 U64 total_to_write = (U64)(opl - ptr);
-                DWORD to_write = total_to_write;
+                DWORD to_write = (DWORD)total_to_write;
                 if(total_to_write > max_U32)
                 {
                     to_write = max_U32;
@@ -566,6 +566,6 @@ function void os_get_entropy(void *data, U64 size)
 {
     HCRYPTPROV prov = 0;
     CryptAcquireContextW(&prov, 0, 0, PROV_DSS, CRYPT_VERIFYCONTEXT);
-    CryptGenRandom(prov, size, (BYTE*)data);
+    CryptGenRandom(prov, (DWORD)size, (BYTE*)data);
     CryptReleaseContext(prov, 0);
 }

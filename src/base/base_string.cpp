@@ -11,7 +11,7 @@ function U8 str8_char_uppercase(U8 c)
 {
     if('a' <= c && c <= 'z')
     {
-        c += 'A' - 'a';
+        c += (U8)('A' - 'a');
     }
     return(c);
 }
@@ -20,7 +20,7 @@ function U8 str8_char_lowercase(U8 c)
 {
     if('A' <= c && c <= 'Z')
     {
-        c += 'a' - 'A';
+        c += (U8)('a' - 'A');
     }
     return(c);
 }
@@ -328,7 +328,7 @@ function B32 str8_match(String8 s1, String8 s2, StringMatchFlags flags)
 // Unicode Functions
 //=========================
 
-function StringDecode str_decode_utf8(U8 *str, U32 cap)
+function StringDecode str_decode_utf8(U8 *str, U64 cap)
 {
     local U8 length[] = {
         1, 1, 1, 1, // 000xx
@@ -378,28 +378,28 @@ function U32 str_encode_utf8(U8 *dst, U32 codepoint)
     U32 size = 0;
     if(codepoint < (1 << 8))
     {
-        dst[0] = codepoint;
+        dst[0] = (U8)codepoint;
         size = 1;
     }
     else if(codepoint < (1 << 11))
     {
-        dst[0] = 0xC0 | (codepoint >> 6);
-        dst[1] = 0x80 | (codepoint & 0x3F);
+        dst[0] = 0xC0 | (U8)(codepoint >> 6);
+        dst[1] = 0x80 | (U8)(codepoint & 0x3F);
         size = 2;
     }
     else if(codepoint < (1 << 16))
     {
-        dst[0] = 0xE0 | (codepoint >> 12);
-        dst[1] = 0x80 | ((codepoint >> 6) & 0x3F);
-        dst[2] = 0x80 | (codepoint & 0x3F);
+        dst[0] = 0xE0 | (U8)(codepoint >> 12);
+        dst[1] = 0x80 | (U8)((codepoint >> 6) & 0x3F);
+        dst[2] = 0x80 | (U8)(codepoint & 0x3F);
         size = 3;
     }
     else if(codepoint < (1 << 21))
     {
-        dst[0] = 0xF0 | (codepoint >> 18);
-        dst[1] = 0x80 | ((codepoint >> 12) & 0x3F);
-        dst[2] = 0x80 | ((codepoint >> 6) & 0x3F);
-        dst[3] = 0x80 | (codepoint & 0x3F);
+        dst[0] = 0xF0 | (U8)(codepoint >> 18);
+        dst[1] = 0x80 | (U8)((codepoint >> 12) & 0x3F);
+        dst[2] = 0x80 | (U8)((codepoint >> 6) & 0x3F);
+        dst[3] = 0x80 | (U8)(codepoint & 0x3F);
         size = 4;
     }
     else
@@ -410,7 +410,7 @@ function U32 str_encode_utf8(U8 *dst, U32 codepoint)
     return(size);
 }
 
-function StringDecode str_decode_utf16(U16 *str, U32 cap)
+function StringDecode str_decode_utf16(U16 *str, U64 cap)
 {
     StringDecode result = {'#', 1};
     U16 x = str[0];
@@ -439,14 +439,14 @@ function U32 str_encode_utf16(U16 *dst, U32 codepoint)
     U32 size = 0;
     if(codepoint < 0x10000)
     {
-        dst[0] = codepoint;
+        dst[0] = (U8)codepoint;
         size = 1;
     }
     else
     {
         U32 cpj = codepoint - 0x10000;
-        dst[0] = (cpj >> 10) + 0xD800;
-        dst[1] = (cpj & 0x3FF) + 0xDC00;
+        dst[0] = (U8)((cpj >> 10) + 0xD800);
+        dst[1] = (U8)((cpj & 0x3FF) + 0xDC00);
         size = 2;
     }
     return(size);
@@ -539,7 +539,7 @@ function String8 str8_from_str16(M_Arena *arena, String16 string)
     for(; ptr < opl;)
     {
         StringDecode decode = str_decode_utf16(ptr, (U64)(opl - ptr));
-        U16 enc_size = str_encode_utf8(dptr, decode.codepoint);
+        U16 enc_size = (U16)str_encode_utf8(dptr, decode.codepoint);
         ptr += decode.size;
         dptr += enc_size;
     }
