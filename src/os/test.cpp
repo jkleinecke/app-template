@@ -12,10 +12,8 @@ struct TestData
     S32 b;
 };
 
-int main(int argc, char **argv)
+int app_main(void)
 {
-    os_main_init(argc, argv);
-
     M_ArenaTemp scratch = m_get_scratch(0,0);
 
     TEST_PRINT(os_file_path(scratch.arena, kOS_SystemPath_CurrentDir).str);
@@ -44,6 +42,8 @@ int main(int argc, char **argv)
 
         m_arena_release(arena);
     }
+
+    m_release_scratch(scratch);
 
     return 0;
 }

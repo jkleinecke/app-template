@@ -4,6 +4,9 @@
 #if OS_WINDOWS
 # include "win32/win32_essential.h"
 # include "win32/win32_essential.cpp"
+#elif OS_MACOS
+# include "macos/macos_essential.h"
+# include "macos/macos_essential.mm"
 #else
 # error no backend for os_inc.cpp on this OS
 #endif

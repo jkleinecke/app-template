@@ -10,7 +10,7 @@ if (MSVC)
     add_compile_options(/W4 /WX /wd4131 /wd4310 /wd5195 /wd4042 /wd4127 /wd4067 /wd4100 /wd4189 /wd5105 /wd4505)
 else()
     # lots of warnings and all warnings as errors
-    add_compile_options(-Wall -Wextra -pedantic -Werror)
+    add_compile_options(-Wall -Wextra -pedantic -Werror -Wno-unused-parameter -Wno-unused-function)
 endif()
 
 if(WIN32)
@@ -24,7 +24,8 @@ else()
 endif()
 
 set(APP_FILES
-   src/app.cpp
+   # src/app.cpp
+   src/os/test.cpp
 )
 
 add_executable(app ${APP_FILES})

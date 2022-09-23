@@ -13,7 +13,7 @@
             "program": "${workspaceFolder}/build/app-debug/app.exe",
             "osx": {
                 "type": "lldb",
-                "program": "${workspaceFolder}/build/app-debug/app"
+                "program": "${workspaceFolder}/build/app-debug/app.app"
             },
             "linux": {
                 "type": "lldb",
