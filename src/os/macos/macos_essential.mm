@@ -147,6 +147,8 @@ function FileProperties os_file_properties(String8 file_name)
     FileProperties result = {};
     result.size = (U64)fileStats.st_size;
     result.flags = fileStats.st_mode & S_IFDIR ? FilePropertyFlag_IsFolder : 0;
+    // TODO: Implement the create/modify time conversion
+    NotImplemented;
     result.create_time = 0;
     result.modify_time = 0;
 
@@ -168,43 +170,82 @@ function FileProperties os_file_properties(String8 file_name)
 
 function B32 os_file_delete(String8 file_name)
 {
+    NotImplemented;
     return false;
 }
 
 function B32 os_file_move(String8 src_name, String8 dst_name)
 {
+    NotImplemented;
     return false;
 }
 
 function B32 os_file_create_directory(String8 path)
 {
+    NotImplemented;
     return false;
 }
 
 function B32 os_file_delete_directory(String8 path)
 {
+    NotImplemented;
     return false;
 }
 
 function OS_FileIter os_file_iter_init(String8 path)
 {
+    NotImplemented;
     OS_FileIter result = {};
     return(result);
 }
 
 function B32 os_file_iter_next(M_Arena *arena, OS_FileIter *iter, String8 *name_out, FileProperties *prop_out)
 {
+    NotImplemented;
     return false;
 }
 
 function void  os_file_iter_end(OS_FileIter *iter)
 {
-
+    NotImplemented;
 }
 
 function String8 os_file_path(M_Arena *arena, OS_SystemPath path)
 {
     String8 result = {};
+
+    switch(path)
+    {
+        case kOS_SystemPath_CurrentDir:
+        {
+
+            // M_ArenaTemp scratch = m_get_scratch(&arena, 1);
+            // DWORD cap = 2048;
+            // U16 *buffer = push_array(scratch.arena, U16, cap);
+            // DWORD size = GetCurrentDirectoryW(cap, (WCHAR*)buffer);
+            // if(size >= cap)
+            // {
+            //     m_end_temp(scratch);
+            //     buffer = push_array(scratch.arena, U16, size+1);
+            //     size = GetCurrentDirectoryW(size+1, (WCHAR*)buffer);
+            // }
+            // result = str8_from_str16(arena, str16(buffer, size));
+            // m_release_scratch(scratch);
+        }break;
+        case kOS_SystemPath_Bin:
+        {
+            result = str8_push_copy(arena, macos_binary_path);
+        }break;
+        case kOS_SystemPath_User:
+        {   
+            result = str8_push_copy(arena, macos_user_path);
+        }break;
+        case kOS_SystemPath_Temp:
+        {
+            result = str8_push_copy(arena, macos_temp_path);
+        }break;
+    }
+
     return(result);
 }
 
@@ -212,21 +253,64 @@ function String8 os_file_path(M_Arena *arena, OS_SystemPath path)
 // Time
 //=======================
 
+function DateTime macos_datetime_from_timeval(struct timeval* time)
+{
+    struct tm* timeparts = gmtime(&time->tv_sec);
+
+    DateTime result = {};
+    result.msec = time->tv_usec/1000;
+    result.sec = timeparts->tm_sec;
+    result.min = timeparts->tm_min;
+    result.hour = timeparts->tm_hour;
+    result.day = timeparts->tm_mday;
+    result.month = timeparts->tm_mon;
+    result.year = timeparts->tm_year;
+
+    return(result);
+}
+
+function struct tm macos_tm_from_datetime(DateTime *dt)
+{
+    struct tm timeparts = {};
+    timeparts.tm_sec = dt->sec;
+    timeparts.tm_min = dt->min;
+    timeparts.tm_hour = dt->hour;
+    timeparts.tm_mday = dt->day;
+    timeparts.tm_mon = dt->month;
+    timeparts.tm_year = dt->year;
+
+    return(timeparts);
+}
+
 function DateTime os_time_utc_now(void)
 {
-    DateTime result = {};
+    struct timeval time;
+    int failed = gettimeofday(&time, 0);
+    Assert(!failed);
+
+    DateTime result = macos_datetime_from_timeval(&time);
     return(result);
 }
 
 function DateTime os_time_local_from_utc(DateTime *dt)
 {
-    DateTime result = {};
+    struct tm timeparts = macos_tm_from_datetime(dt);
+    struct timeval time = {};
+    time.tv_sec = mktime(&timeparts);
+    time.tv_usec = dt->msec*1000;
+
+    DateTime result = macos_datetime_from_timeval(&time);
     return(result);
 }
 
 function DateTime os_time_utc_from_local(DateTime *dt)
 {
-    DateTime result = {};
+    struct tm timeparts = macos_tm_from_datetime(dt);
+    struct timeval time = {};
+    time.tv_sec = timegm(&timeparts);
+    time.tv_usec = dt->msec*1000;
+
+    DateTime result = macos_datetime_from_timeval(&time);
     return(result);
 }
 
@@ -236,7 +320,7 @@ function U64 os_now_microseconds(void)
     int failed = gettimeofday(&time, 0);
     Assert(!failed);
 
-    U64 result = (U64)time.tv_usec;
+    U64 result = (U64)(time.tv_sec * Million(1)) + (U64)time.tv_usec;
 
     return(result);
 }
@@ -247,7 +331,8 @@ function U64 os_now_microseconds(void)
 
 function void os_sleep_milliseconds(U32 t)
 {
-
+    int failed = usleep(t*1000);
+    Assert(!failed);
 }
 
 //=======================
@@ -256,19 +341,21 @@ function void os_sleep_milliseconds(U32 t)
 
 function OS_Library os_lib_load(String8 path)
 {
+    NotImplemented;
     OS_Library result = {};
     return(result);
 }
 
 function VoidFunc*  os_lib_get_proc(OS_Library lib, char *name)
 {
+    NotImplemented;
     VoidFunc* func = 0;
     return(func);
 }
 
 function void os_lib_unload(OS_Library lib)
 {
-
+    NotImplemented;
 }
 
 //=======================
@@ -277,5 +364,5 @@ function void os_lib_unload(OS_Library lib)
 
 function void os_get_entropy(void *data, U64 size)
 {
-
+    NotImplemented;
 }
