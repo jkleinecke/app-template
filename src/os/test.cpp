@@ -21,6 +21,9 @@ int app_main(void)
     TEST_PRINT(os_file_path(scratch.arena, kOS_SystemPath_Temp).str);
     TEST_PRINT(os_file_path(scratch.arena, kOS_SystemPath_User).str);
 
+    U64 now = os_now_microseconds();
+    printf("microseconds: %llu\n", now);
+
     String8List listCmdArgs = os_command_line_args();
     for(String8Node *node = listCmdArgs.first; node != 0; node = node->next)
     {
@@ -44,6 +47,10 @@ int app_main(void)
     }
 
     m_release_scratch(scratch);
+
+
+    now = os_now_microseconds();
+    printf("microseconds: %llu\n", now);
 
     return 0;
 }

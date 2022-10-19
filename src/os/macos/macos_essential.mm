@@ -4,6 +4,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <stdio.h>
 #include <copyfile.h>
 #include <libproc.h>
@@ -231,7 +232,13 @@ function DateTime os_time_utc_from_local(DateTime *dt)
 
 function U64 os_now_microseconds(void)
 {
-    return 0;
+    struct timeval time;
+    int failed = gettimeofday(&time, 0);
+    Assert(!failed);
+
+    U64 result = (U64)time.tv_usec;
+
+    return(result);
 }
 
 //=======================
