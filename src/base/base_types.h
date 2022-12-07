@@ -166,6 +166,7 @@
 #define global static
 #define local  static
 #define function static
+#define inline_function static inline
 
 #if COMPILER_CL
 # define threadvar __declspec(thread)
