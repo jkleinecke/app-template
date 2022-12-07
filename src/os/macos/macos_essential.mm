@@ -1,4 +1,6 @@
 
+
+
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/uio.h>
@@ -11,31 +13,71 @@
 #include <time.h>
 #include <dlfcn.h>
 #include <fcntl.h>
+#include <mach/mach_time.h>
 
-global M_Arena *macos_perm_arena = 0;
+global NSApplication* macos_application = 0;
+global MacosAppDelegate* macos_appdelegate = 0;
+
+global B32 macos_didquit = false;
+global MemArena *macos_perMemArena = 0;
 global String8 macos_binary_path = {};
 global String8 macos_user_path = {};
 global String8 macos_temp_path = {};
 
 global String8List macos_cmd_line = {};
 
+
+NSString* nsstring_from_str8(MemArena* arena, String8 str)
+{
+    Assert(str.size != 0);      // Cannot create NSString with empty String8
+    String16 str16 = str16_from_str8(arena, str);
+
+    NSString* nsstr = [NSString stringWithCharacters: str16.str length: str16.size];
+    return(nsstr);
+}
+
+String8 str8_from_nsstring(MemArena* arena, NSString* nsstr)
+{
+    U32 max_length = [nsstr maximumLengthOfBytesUsingEncoding: NSUTF8StringEncoding];
+    U8* bytes = push_array(arena, U8, max_length);
+
+    String8 result = {};
+    result.str = bytes;
+    result.size = max_length;
+
+    BOOL success = [nsstr getCString: (char*)bytes maxLength: max_length encoding: NSUTF8StringEncoding];
+    Assert(success);
+    
+    return(result);
+}
+
 //=======================
 // Setup 
-//=======================
+//=======================e
 
 function void os_main_init(int argc, char **argv)
 {
+    macos_application = [NSApplication sharedApplication];
+    [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+    [NSApp activateIgnoringOtherApps:YES];
+
+    // Set the app delegate
+    macos_appdelegate = [[MacosAppDelegate alloc] init];
+
+    [NSApp finishLaunching];
+
     // arena
-    macos_perm_arena = m_alloc_arena();
+    macos_perMemArena = mem_alloc_arena();
 
     for(int i = 0; i < argc; ++i)
     {
         String8 arg = str8_cstring((U8*)argv[i]);
-        str8_list_push(macos_perm_arena, &macos_cmd_line, arg);
+        str8_list_push(macos_perMemArena, &macos_cmd_line, arg);
     }
 
     // binary path
     {
+        // [[NSBundle mainBundle] bundlePath]];
         macos_binary_path = str8_lit("TODO");
     }
 
@@ -92,7 +134,7 @@ function void  os_memory_release(void *ptr, U64 size)
 // File Handling
 //=======================
 
-function String8 os_file_read(M_Arena *arena, String8 file_name)
+function String8 os_file_read(MemArena *arena, String8 file_name)
 {
     String8 result = {};
 
@@ -199,7 +241,7 @@ function OS_FileIter os_file_iter_init(String8 path)
     return(result);
 }
 
-function B32 os_file_iter_next(M_Arena *arena, OS_FileIter *iter, String8 *name_out, FileProperties *prop_out)
+function B32 os_file_iter_next(MemArena *arena, OS_FileIter *iter, String8 *name_out, FileProperties *prop_out)
 {
     NotImplemented;
     return false;
@@ -210,7 +252,7 @@ function void  os_file_iter_end(OS_FileIter *iter)
     NotImplemented;
 }
 
-function String8 os_file_path(M_Arena *arena, OS_SystemPath path)
+function String8 os_file_path(MemArena *arena, OS_SystemPath path)
 {
     String8 result = {};
 
@@ -218,19 +260,20 @@ function String8 os_file_path(M_Arena *arena, OS_SystemPath path)
     {
         case kOS_SystemPath_CurrentDir:
         {
+            // NSString *dir = [[NSFileManager defaultManager] currentDirectoryPath];
 
-            // M_ArenaTemp scratch = m_get_scratch(&arena, 1);
+            // MemArenaTemp scratch = mem_get_scratch(&arena, 1);
             // DWORD cap = 2048;
             // U16 *buffer = push_array(scratch.arena, U16, cap);
             // DWORD size = GetCurrentDirectoryW(cap, (WCHAR*)buffer);
             // if(size >= cap)
             // {
-            //     m_end_temp(scratch);
+            //     mem_end_temp(scratch);
             //     buffer = push_array(scratch.arena, U16, size+1);
             //     size = GetCurrentDirectoryW(size+1, (WCHAR*)buffer);
             // }
             // result = str8_from_str16(arena, str16(buffer, size));
-            // m_release_scratch(scratch);
+            // mem_release_scratch(scratch);
         }break;
         case kOS_SystemPath_Bin:
         {
@@ -316,11 +359,7 @@ function DateTime os_time_utc_from_local(DateTime *dt)
 
 function U64 os_now_microseconds(void)
 {
-    struct timeval time;
-    int failed = gettimeofday(&time, 0);
-    Assert(!failed);
-
-    U64 result = (U64)(time.tv_sec * Million(1)) + (U64)time.tv_usec;
+    U64 result = mach_absolute_time();
 
     return(result);
 }

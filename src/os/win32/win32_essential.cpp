@@ -1,7 +1,7 @@
 
 global U64 win32_ticks_per_second = 1;
 
-global M_Arena *win32_perm_arena = 0;
+global MemArena *win32_perm_arena = 0;
 global String8 win32_binary_path = {};
 global String8 win32_user_path = {};
 global String8 win32_temp_path = {};
@@ -31,7 +31,7 @@ function void os_main_init(int argc, char **argv)
     timeBeginPeriod(1);
 
     // arena
-    win32_perm_arena = m_alloc_arena();
+    win32_perm_arena = mem_alloc_arena();
 
     // command line args
     for(int i = 0; i < argc; ++i)
@@ -41,7 +41,7 @@ function void os_main_init(int argc, char **argv)
     }
 
     // paths
-    M_ArenaTemp scratch = m_get_scratch(0,0);
+    MemArenaTemp scratch = mem_get_scratch(0,0);
 
     // binary path
     {
@@ -54,7 +54,7 @@ function void os_main_init(int argc, char **argv)
             DWORD try_size = GetModuleFileNameW(0, (WCHAR*)try_buffer, cap);
             if(try_size == cap && GetLastError() == ERROR_INSUFFICIENT_BUFFER)
             {
-                m_end_temp(scratch);
+                mem_end_temp(scratch);
             }
             else
             {
@@ -76,7 +76,7 @@ function void os_main_init(int argc, char **argv)
         U16 *buffer = push_array(scratch.arena, U16, cap);
         if(!GetUserProfileDirectoryW(token, (WCHAR*)buffer, &cap))
         {
-            m_end_temp(scratch);
+            mem_end_temp(scratch);
             buffer = push_array(scratch.arena, U16, cap+1);
             if(!GetUserProfileDirectoryW(token, (WCHAR*)buffer, &cap))
             {
@@ -97,7 +97,7 @@ function void os_main_init(int argc, char **argv)
         DWORD size = GetTempPathW(cap, (WCHAR*)buffer);
         if(size >= cap)
         {
-            m_end_temp(scratch);
+            mem_end_temp(scratch);
             buffer = push_array(scratch.arena, U16, size + 1);
             size = GetTempPathW(size+1, (WCHAR*)buffer);
         }
@@ -106,7 +106,7 @@ function void os_main_init(int argc, char **argv)
         win32_temp_path = str8_from_str16(win32_perm_arena, str16(buffer, size - 1));
     }
 
-    m_release_scratch(scratch);
+    mem_release_scratch(scratch);
 }
 
 function void win32_WinMain_init(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
@@ -258,9 +258,9 @@ function DataAccessFlags win32_access_from_attribs(DWORD attribs)
     return(result);
 }
 
-function String8 os_file_read(M_Arena *arena, String8 file_name)
+function String8 os_file_read(MemArena *arena, String8 file_name)
 {
-    M_ArenaTemp scratch = m_get_scratch(&arena, 1);
+    MemArenaTemp scratch = mem_get_scratch(&arena, 1);
     String16 file_name16 = str16_from_str8(scratch.arena, file_name);
     HANDLE file = CreateFileW((WCHAR*)file_name16.str, GENERIC_READ, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 
@@ -274,7 +274,7 @@ function String8 os_file_read(M_Arena *arena, String8 file_name)
         U64 total_size = (((U64)hi_size) << 32) | (U64)lo_size;
 
         // allocate the read buffer
-        M_ArenaTemp restore_point = m_begin_temp(arena);
+        MemArenaTemp restore_point = mem_begin_temp(arena);
         U8 *buffer = push_array(arena, U8, total_size);
 
         // read
@@ -305,20 +305,20 @@ function String8 os_file_read(M_Arena *arena, String8 file_name)
         }
         else
         {
-            m_end_temp(restore_point);
+            mem_end_temp(restore_point);
         }
 
         CloseHandle(file);
     }
 
-    m_release_scratch(scratch);
+    mem_release_scratch(scratch);
 
     return(result);
 }
 
 function B32 os_file_write(String8 file_name, String8List data)
 {
-    M_ArenaTemp scratch = m_get_scratch(0, 0);
+    MemArenaTemp scratch = mem_get_scratch(0, 0);
     String16 file_name16 = str16_from_str8(scratch.arena, file_name);
     HANDLE file = CreateFileW((WCHAR*)file_name16.str, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 
@@ -353,14 +353,14 @@ function B32 os_file_write(String8 file_name, String8List data)
         CloseHandle(file);
     }
 
-    m_release_scratch(scratch);
+    mem_release_scratch(scratch);
 
     return(result);
 }
 
 function FileProperties os_file_properties(String8 file_name)
 {
-    M_ArenaTemp scratch = m_get_scratch(0,0);
+    MemArenaTemp scratch = mem_get_scratch(0,0);
     String16 file_name16 = str16_from_str8(scratch.arena, file_name);
 
     // get attribs and convert
@@ -375,55 +375,55 @@ function FileProperties os_file_properties(String8 file_name)
         result.access = win32_access_from_attribs(attribs.dwFileAttributes);
     }
 
-    m_release_scratch(scratch);
+    mem_release_scratch(scratch);
 
     return(result);
 }
 
 function B32 os_file_delete(String8 file_name)
 {
-    M_ArenaTemp scratch = m_get_scratch(0,0);
+    MemArenaTemp scratch = mem_get_scratch(0,0);
     String16 file_name16 = str16_from_str8(scratch.arena, file_name);
 
     B32 result = DeleteFileW((WCHAR*)file_name16.str);
-    m_release_scratch(scratch);
+    mem_release_scratch(scratch);
     return(result);
 }
 
 function B32 os_file_move(String8 src_name, String8 dst_name)
 {
-    M_ArenaTemp scratch = m_get_scratch(0,0);
+    MemArenaTemp scratch = mem_get_scratch(0,0);
     String16 src_name16 = str16_from_str8(scratch.arena, src_name);
     String16 dst_name16 = str16_from_str8(scratch.arena, dst_name);
 
     B32 result = MoveFileW((WCHAR*)src_name16.str, (WCHAR*)dst_name16.str);
-    m_release_scratch(scratch);
+    mem_release_scratch(scratch);
     return(result);
 }
 
 function B32 os_file_create_directory(String8 path)
 {
-    M_ArenaTemp scratch = m_get_scratch(0,0);
+    MemArenaTemp scratch = mem_get_scratch(0,0);
     String16 path16 = str16_from_str8(scratch.arena, path);
 
     B32 result = CreateDirectoryW((WCHAR*)path16.str, 0);
-    m_release_scratch(scratch);
+    mem_release_scratch(scratch);
     return(result);
 }
 
 function B32 os_file_delete_directory(String8 path)
 {
-    M_ArenaTemp scratch = m_get_scratch(0,0);
+    MemArenaTemp scratch = mem_get_scratch(0,0);
     String16 path16 = str16_from_str8(scratch.arena, path);
 
     B32 result = RemoveDirectoryW((WCHAR*)path16.str);
-    m_release_scratch(scratch);
+    mem_release_scratch(scratch);
     return(result);
 }
 
 function OS_FileIter os_file_iter_init(String8 path)
 {
-    M_ArenaTemp scratch = m_get_scratch(0,0);
+    MemArenaTemp scratch = mem_get_scratch(0,0);
     
     String8Node nodes[2];
     String8List list = {};
@@ -436,11 +436,11 @@ function OS_FileIter os_file_iter_init(String8 path)
     Win32_FileIter *iter = (Win32_FileIter*)&result;
     iter->handle = FindFirstFileW((WCHAR*)path16.str, &iter->find_data);
 
-    m_release_scratch(scratch);
+    mem_release_scratch(scratch);
     return(result);
 }
 
-function B32 os_file_iter_next(M_Arena *arena, OS_FileIter *iter, String8 *name_out, FileProperties *prop_out)
+function B32 os_file_iter_next(MemArena *arena, OS_FileIter *iter, String8 *name_out, FileProperties *prop_out)
 {
     B32 result = false;
 
@@ -492,7 +492,7 @@ function void os_file_iter_end(OS_FileIter *iter)
     }
 }
 
-function String8 os_file_path(M_Arena *arena, OS_SystemPath path)
+function String8 os_file_path(MemArena *arena, OS_SystemPath path)
 {
     String8 result = {};
 
@@ -500,18 +500,18 @@ function String8 os_file_path(M_Arena *arena, OS_SystemPath path)
     {
         case kOS_SystemPath_CurrentDir:
         {
-            M_ArenaTemp scratch = m_get_scratch(&arena, 1);
+            MemArenaTemp scratch = mem_get_scratch(&arena, 1);
             DWORD cap = 2048;
             U16 *buffer = push_array(scratch.arena, U16, cap);
             DWORD size = GetCurrentDirectoryW(cap, (WCHAR*)buffer);
             if(size >= cap)
             {
-                m_end_temp(scratch);
+                mem_end_temp(scratch);
                 buffer = push_array(scratch.arena, U16, size+1);
                 size = GetCurrentDirectoryW(size+1, (WCHAR*)buffer);
             }
             result = str8_from_str16(arena, str16(buffer, size));
-            m_release_scratch(scratch);
+            mem_release_scratch(scratch);
         }break;
         case kOS_SystemPath_Bin:
         {
@@ -546,10 +546,10 @@ function void os_sleep_milliseconds(U32 t)
 function OS_Library os_lib_load(String8 path)
 {
     OS_Library result = {};
-    M_ArenaTemp scratch = m_get_scratch(0,0);
+    MemArenaTemp scratch = mem_get_scratch(0,0);
     String16 path16 = str16_from_str8(scratch.arena, path);
     result.v[0] = (U64)(LoadLibraryW((WCHAR*)path16.str));
-    m_release_scratch(scratch);
+    mem_release_scratch(scratch);
     return(result);
 }
 
