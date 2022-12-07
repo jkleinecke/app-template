@@ -628,6 +628,184 @@ inline_function V4F vec_fastnorm(V4F a)
     return a * rsqrt_F32(vec_dot(a,a));
 }
 
+#if MATH_USE_SSE
+inline_function __m128 sse_linear_combine(__m128 left, M4F right)
+{
+    __m128 result;
+    result = _mm_mul_ps(_mm_shuffle_ps(left, left, 0x00), right.cols[0]);
+    result = _mm_add_ps(result, _mm_mul_ps(_mm_shuffle_ps(left, left, 0x55), right.cols[1]));
+    result = _mm_add_ps(result, _mm_mul_ps(_mm_shuffle_ps(left, left, 0xaa), right.cols[2]));
+    result = _mm_add_ps(result, _mm_mul_ps(_mm_shuffle_ps(left, left, 0xff), right.cols[3]));
+    return result;
+}
+#endif
+
+inline_function M4F m4f(void)
+{
+    M4F r = {0};
+    return r;
+}
+
+inline_function M4F m4f(F32 diagonal)
+{
+    M4F r = {0};
+    r.e[0][0] = diagonal;
+    r.e[1][1] = diagonal;
+    r.e[2][2] = diagonal;
+    r.e[3][3] = diagonal;
+    return r;
+}
+
+inline_function M4F m4f_identity(void)
+{
+    return m4f(1.0f);
+}
+
+inline_function M4F mat_transpose(M4F a)
+{
+    M4F result = a;
+
+#if MATH_USE_SSE
+    _MM_TRANSPOSE4_PS(result.cols[0], result.cols[1], result.cols[2], result.cols[3]);
+#else
+    for(int cols = 0; cols < 4; ++cols)
+    {
+        for(int rows = 0; rows < 4; ++rows)
+        {
+            result.e[rows][cols] = a.e[cols][rows];
+        }
+    }
+#endif
+
+    return result;
+}
+
+inline_function M4F operator+(const M4F &a, const M4F &b)
+{
+    M4F result;
+#if MATH_USE_SSE
+    result.cols[0] = _mm_add_ps(a.cols[0], b.cols[0]);
+    result.cols[1] = _mm_add_ps(a.cols[1], b.cols[1]);
+    result.cols[2] = _mm_add_ps(a.cols[2], b.cols[2]);
+    result.cols[3] = _mm_add_ps(a.cols[3], b.cols[3]);
+#else
+    for(int cols = 0; cols < 4; ++cols)
+    {
+        for(int rows = 0; rows < 4; ++rows)
+        {
+            result.e[cols][rows] = a.e[cols][rows] + b.e[cols][rows];
+        }
+    }
+#endif
+    return result;
+}
+inline_function M4F operator-(const M4F &a, const M4F &b)
+{
+    M4F result;
+#if MATH_USE_SSE
+    result.cols[0] = _mm_sub_ps(a.cols[0], b.cols[0]);
+    result.cols[1] = _mm_sub_ps(a.cols[1], b.cols[1]);
+    result.cols[2] = _mm_sub_ps(a.cols[2], b.cols[2]);
+    result.cols[3] = _mm_sub_ps(a.cols[3], b.cols[3]);
+#else
+    for(int cols = 0; cols < 4; ++cols)
+    {
+        for(int rows = 0; rows < 4; ++rows)
+        {
+            result.e[cols][rows] = a.e[cols][rows] - b.e[cols][rows];
+        }
+    }
+#endif
+    return result;
+}
+inline_function M4F operator*(const M4F &a, const M4F &b)
+{
+    M4F result;
+#if MATH_USE_SSE
+    result.cols[0] = sse_linear_combine(b.cols[0], a);
+    result.cols[1] = sse_linear_combine(b.cols[1], a);
+    result.cols[2] = sse_linear_combine(b.cols[2], a);
+    result.cols[3] = sse_linear_combine(b.cols[3], a);
+#else
+    for(int cols = 0; cols < 4; ++cols)
+    {
+        for(int rows = 0; rows < 4; ++rows)
+        {
+            F32 sum = 0.0f;
+            for(int k = 0; k < 4; ++k)
+            {
+                sum += a.e[k][rows] * b.e[cols][k];
+            }
+
+            result.e[cols][rows] = sum;
+        }
+    }
+#endif
+    return result;
+}
+
+inline_function M4F operator*(const M4F &m, const F32 &s)
+{
+    M4F result;
+#if MATH_USE_SSE
+    __m128 scalar = _mm_set1_ps(s);
+    result.cols[0] = _mm_mul_ps(m.cols[0], scalar);
+    result.cols[1] = _mm_mul_ps(m.cols[1], scalar);
+    result.cols[2] = _mm_mul_ps(m.cols[2], scalar);
+    result.cols[3] = _mm_mul_ps(m.cols[3], scalar);
+#else
+    for(int cols = 0; cols < 4; ++cols)
+    {
+        for(int rows = 0; rows < 4; ++rows)
+        {
+            result.e[cols][rows] = m.e[cols][rows] * s;
+        }
+    }
+#endif
+    return result;
+}
+
+inline_function V4F operator*(const M4F &m, const V4F &v)
+{
+    V4F result;
+#if MATH_USE_SSE
+    result.internal = sse_linear_combine(v.internal, m);
+#else
+    for(int rows = 0; rows < 4; ++rows)
+    {
+        float sum = 0.0f;
+        for(int cols = 0; cols < 4; ++cols)
+        {
+            sum += m.e[cols][rows] * v.e[cols];
+        }
+
+        result.e[rows] = sum;
+    }
+#endif
+    return result;
+}
+
+inline_function M4F operator/(const M4F &m, const F32 &s)
+{
+    M4F result;
+#if MATH_USE_SSE
+    __m128 scalar = _mm_set1_ps(s);
+    result.cols[0] = _mm_div_ps(m.cols[0], scalar);
+    result.cols[1] = _mm_div_ps(m.cols[1], scalar);
+    result.cols[2] = _mm_div_ps(m.cols[2], scalar);
+    result.cols[3] = _mm_div_ps(m.cols[3], scalar);
+#else
+    for(int cols = 0; cols < 4; ++cols)
+    {
+        for(int rows = 0; rows < 4; ++rows)
+        {
+            result.e[cols][rows] = m.e[cols][rows] / s;
+        }
+    }
+#endif
+    return result;
+}
+
 // inline_function B32 intr_overlaps(I1F32 a, I1F32 b);
 // inline_function B32 intr_overlaps(I2F32 a, I2F32 b);
 // inline_function B32 intr_overlaps(I2S32 a, I2S32 b);

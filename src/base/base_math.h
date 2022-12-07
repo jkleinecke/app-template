@@ -209,6 +209,18 @@ inline_function V2F vec_fastnorm(V2F a);
 inline_function V3F vec_fastnorm(V3F a);
 inline_function V4F vec_fastnorm(V4F a);
 
+inline_function M4F m4f(void);
+inline_function M4F m4f(F32 diagonal);
+inline_function M4F m4f_identity(void);
+inline_function M4F mat_transpose(M4F a);
+
+inline_function M4F operator+(const M4F &a, const M4F &b);
+inline_function M4F operator-(const M4F &a, const M4F &b);
+inline_function M4F operator*(const M4F &a, const M4F &b);
+inline_function M4F operator*(const M4F &m, const F32 &s);
+inline_function V4F operator*(const M4F &m, const V4F &v);
+inline_function M4F operator/(const M4F &m, const F32 &s);
+
 // inline_function B32 intr_overlaps(I1F32 a, I1F32 b);
 // inline_function B32 intr_overlaps(I2F32 a, I2F32 b);
 // inline_function B32 intr_overlaps(I2S32 a, I2S32 b);
