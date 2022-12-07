@@ -31,7 +31,7 @@ function void  os_memory_release(void *ptr, U64 size);
 // File Handling
 //=======================
 
-function String8 os_file_read(M_Arena *arena, String8 file_name);
+function String8 os_file_read(MemArena *arena, String8 file_name);
 function B32     os_file_write(String8 file_name, String8List data);
 
 function FileProperties os_file_properties(String8 file_name);
@@ -47,10 +47,10 @@ struct OS_FileIter
 };
 
 function OS_FileIter os_file_iter_init(String8 path);
-function B32         os_file_iter_next(M_Arena *arena, OS_FileIter *iter, String8 *name_out, FileProperties *prop_out);
+function B32         os_file_iter_next(MemArena *arena, OS_FileIter *iter, String8 *name_out, FileProperties *prop_out);
 function void        os_file_iter_end(OS_FileIter *iter);
 
-function String8 os_file_path(M_Arena *arena, OS_SystemPath path);
+function String8 os_file_path(MemArena *arena, OS_SystemPath path);
 
 //=======================
 // Time

@@ -436,4 +436,10 @@ function const char* string_from_architecture(Arch arch);
 function const char* string_from_month(Month month);
 function const char* string_from_day_of_week(DayOfWeek day_of_week);
 
+///////////////////////////////
+// Time Functions
+
+function DenseTime dense_time_from_date_time(DateTime *date_time);
+function DateTime  date_time_from_dense_time(DenseTime dense_time);
+
 #endif

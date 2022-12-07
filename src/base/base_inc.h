@@ -7,5 +7,6 @@
 #include "base_default_memory.h"
 #include "base_memory.h"
 #include "base_string.h"
+#include "base_math.h"
 
 #endif

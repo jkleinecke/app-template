@@ -32,7 +32,7 @@ int main(int argc, char** argv)
     TEST_PRINT(string_from_architecture(kArch_ARM64));
 
     printf("Memory Tests\n");
-    M_Arena* arena = m_alloc_arena();
+    MemArena* arena = mem_alloc_arena();
     TestData* ptr = push_struct(arena,TestData);
 
     printf("pos: %llu, commit_pos: %llu, cap: %llu\n", arena->pos, arena->commit_pos, arena->cap);

@@ -14,7 +14,7 @@ struct TestData
 
 int app_main(void)
 {
-    M_ArenaTemp scratch = m_get_scratch(0,0);
+    MemArenaTemp scratch = mem_get_scratch(0,0);
 
     TEST_PRINT(os_file_path(scratch.arena, kOS_SystemPath_CurrentDir).str);
     TEST_PRINT(os_file_path(scratch.arena, kOS_SystemPath_Bin).str);
@@ -36,17 +36,17 @@ int app_main(void)
     printf("File Write Result: %d\n", result);
 
     {
-        M_Arena* arena = m_alloc_arena();
+        MemArena* arena = mem_alloc_arena();
 
         String8 readdata = os_file_read(arena, str8_lit("test.txt"));
         printf("File Read Result: %s\n", readdata.str);
         result = str8_match(filedata, readdata, 0);
         printf("Read data match result: %d\n", result);
 
-        m_arena_release(arena);
+        mem_arena_release(arena);
     }
 
-    m_release_scratch(scratch);
+    mem_release_scratch(scratch);
 
 
     now = os_now_microseconds();

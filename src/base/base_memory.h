@@ -14,24 +14,24 @@
 #if !defined(m_decommit)
 # error missing definition for 'm_decommit' type: (void*,U64)->void
 #endif
-#if !defined(m_release)
-# error missing definition for 'm_release' type: (void*,U64)->void
+#if !defined(mem_release)
+# error missing definition for 'mem_release' type: (void*,U64)->void
 #endif
 
 //===============================
 // Memory Arena Structures
 //===============================
 
-struct M_Arena
+struct MemArena
 {
     U64 cap;
     U64 pos;
     U64 commit_pos;
 };
 
-struct M_ArenaTemp
+struct MemArenaTemp
 {
-    M_Arena *arena;
+    MemArena *arena;
     U64      pos;
 };
 
@@ -44,25 +44,25 @@ struct M_ArenaTemp
 
 #define MEM_SCRATCH_POOL_COUNT 2
 
-function M_Arena*   m_alloc_arena_reserve(U64 reserve_size);
-function M_Arena*   m_alloc_arena(void);
-function void       m_arena_release(M_Arena* arena);
-function void*      m_arena_push(M_Arena* arena, U64 size);
-function void       m_arena_pop_to(M_Arena* arena, U64 pos);
+function MemArena*   mem_alloc_arena_reserve(U64 reserve_size);
+function MemArena*   mem_alloc_arena(void);
+function void       mem_arena_release(MemArena* arena);
+function void*      mem_arena_push(MemArena* arena, U64 size);
+function void       mem_arena_pop_to(MemArena* arena, U64 pos);
 
-function void*      m_arena_push_zero(M_Arena* arena, U64 size);
-function void       m_arena_align(M_Arena* arena, U64 pow2_align);
-function void       m_arena_align_zero(M_Arena* arena, U64 pow2_align);
-function void       m_arena_pop_amount(M_Arena* arena, U64 amount);
+function void*      mem_arena_push_zero(MemArena* arena, U64 size);
+function void       mem_arena_align(MemArena* arena, U64 pow2_align);
+function void       mem_arena_align_zero(MemArena* arena, U64 pow2_align);
+function void       mem_arena_pop_amount(MemArena* arena, U64 amount);
 
-#define push_struct(a,T) (T*)m_arena_push((a), sizeof(T))
-#define push_array(a,T,c) (T*)m_arena_push((a), sizeof(T)*(c))
-#define push_array_zero(a,T,c) (T*)m_arena_push_zero((a), sizeof(T)*(c))
+#define push_struct(a,T) (T*)mem_arena_push((a), sizeof(T))
+#define push_array(a,T,c) (T*)mem_arena_push((a), sizeof(T)*(c))
+#define push_array_zero(a,T,c) (T*)mem_arena_push_zero((a), sizeof(T)*(c))
 
-function M_ArenaTemp    m_begin_temp(M_Arena* arena);
-function void           m_end_temp(M_ArenaTemp temp);
+function MemArenaTemp    mem_begin_temp(MemArena* arena);
+function void           mem_end_temp(MemArenaTemp temp);
 
-function M_ArenaTemp    m_get_scratch(M_Arena **conflict_array, U32 count);
-#define                 m_release_scratch(temp) m_end_temp(temp)
+function MemArenaTemp    mem_get_scratch(MemArena **conflict_array, U32 count);
+#define                 mem_release_scratch(temp) mem_end_temp(temp)
 
 #endif  // BASE_MEMORY_H

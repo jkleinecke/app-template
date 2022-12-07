@@ -101,13 +101,13 @@ function void str8_list_push_explicit(String8List *list, String8 string, String8
     list->total_size += string.size;
 }
 
-function void str8_list_push(M_Arena *arena, String8List *list, String8 string)
+function void str8_list_push(MemArena *arena, String8List *list, String8 string)
 {
     String8Node *node = push_array(arena, String8Node, 1);
     str8_list_push_explicit(list, string, node);
 }
 
-function String8 str8_join(M_Arena *arena, String8List *list, StringJoin *join_optional)
+function String8 str8_join(MemArena *arena, String8List *list, StringJoin *join_optional)
 {
     // setup join params
     local StringJoin dummy_join = {};
@@ -159,7 +159,7 @@ function String8 str8_join(M_Arena *arena, String8List *list, StringJoin *join_o
     return(result);
 }
 
-function String8List str8_split(M_Arena *arena, String8 string, U8 *splits, U32 count)
+function String8List str8_split(MemArena *arena, String8 string, U8 *splits, U32 count)
 {
     String8List result = {};
 
@@ -196,7 +196,7 @@ function String8List str8_split(M_Arena *arena, String8 string, U8 *splits, U32 
     return(result);
 }
 
-function String8 str8_pushfv(M_Arena *arena, char *fmt, va_list args)
+function String8 str8_pushfv(MemArena *arena, char *fmt, va_list args)
 {
     va_list args_copy;
     va_copy(args_copy, args);
@@ -209,13 +209,13 @@ function String8 str8_pushfv(M_Arena *arena, char *fmt, va_list args)
     if(actual_size < buffer_size)
     {
         // if actual less than buffer, put back what we didn't use
-        m_arena_pop_amount(arena, buffer_size - actual_size - 1);
+        mem_arena_pop_amount(arena, buffer_size - actual_size - 1);
         result = str8(buffer, actual_size);
     }
     else
     {
         // if first try failed, reset and try again with bigger size
-        m_arena_pop_amount(arena, buffer_size);
+        mem_arena_pop_amount(arena, buffer_size);
         U8 *fixed_buffer = push_array(arena, U8, actual_size+1);
         U64 final_size = vsnprintf((char*)buffer, actual_size+1, fmt, args_copy);
         result = str8(fixed_buffer, final_size);
@@ -226,7 +226,7 @@ function String8 str8_pushfv(M_Arena *arena, char *fmt, va_list args)
     return(result);
 }
 
-function String8 str8_pushf(M_Arena *arena, char *fmt, ...)
+function String8 str8_pushf(MemArena *arena, char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -235,7 +235,7 @@ function String8 str8_pushf(M_Arena *arena, char *fmt, ...)
     return(result);
 }
 
-function void str8_list_pushf(M_Arena *arena, String8List *list, char *fmt, ...)
+function void str8_list_pushf(MemArena *arena, String8List *list, char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -244,7 +244,7 @@ function void str8_list_pushf(M_Arena *arena, String8List *list, char *fmt, ...)
     str8_list_push(arena, list, string);
 }
 
-function String8 str8_push_copy(M_Arena *arena, String8 string)
+function String8 str8_push_copy(MemArena *arena, String8 string)
 {
     String8 result = {};
     result.str = push_array(arena, U8, string.size+1);
@@ -452,7 +452,7 @@ function U32 str_encode_utf16(U16 *dst, U32 codepoint)
     return(size);
 }
 
-function String32 str32_from_str8(M_Arena *arena, String8 string)
+function String32 str32_from_str8(MemArena *arena, String8 string)
 {
     U32 *memory = push_array(arena, U32, string.size + 1);
 
@@ -472,13 +472,13 @@ function String32 str32_from_str8(M_Arena *arena, String8 string)
     U64 alloc_count = string.size + 1;
     U64 string_count = (U64)(dptr - memory);
     U64 unused_count = alloc_count - string_count - 1;
-    m_arena_pop_amount(arena, unused_count*sizeof(*memory));
+    mem_arena_pop_amount(arena, unused_count*sizeof(*memory));
 
     String32 result = {memory, string_count};
     return(result);
 }
 
-function String8 str8_from_str32(M_Arena *arena, String32 string)
+function String8 str8_from_str32(MemArena *arena, String32 string)
 {
     U8 *memory = push_array(arena, U8, string.size*4 + 1);
 
@@ -497,13 +497,13 @@ function String8 str8_from_str32(M_Arena *arena, String32 string)
     U64 alloc_count = string.size*4 + 1;
     U64 string_count = (U64)(dptr - memory);
     U64 unused_count = alloc_count - string_count - 1;
-    m_arena_pop_amount(arena, unused_count*sizeof(*memory));
+    mem_arena_pop_amount(arena, unused_count*sizeof(*memory));
 
     String8 result = {memory, string_count};
     return(result);
 }
 
-function String16 str16_from_str8(M_Arena *arena, String8 string)
+function String16 str16_from_str8(MemArena *arena, String8 string)
 {
     U16 *memory = push_array(arena, U16, string.size*2 + 1);
 
@@ -523,13 +523,13 @@ function String16 str16_from_str8(M_Arena *arena, String8 string)
     U64 alloc_count = string.size*2 + 1;
     U64 string_count = (U64)(dptr - memory);
     U64 unused_count = alloc_count - string_count - 1;
-    m_arena_pop_amount(arena, unused_count*sizeof(*memory));
+    mem_arena_pop_amount(arena, unused_count*sizeof(*memory));
 
     String16 result = {memory, string_count};
     return(result);
 }
 
-function String8 str8_from_str16(M_Arena *arena, String16 string)
+function String8 str8_from_str16(MemArena *arena, String16 string)
 {
     U8 *memory = push_array(arena, U8, string.size*3 + 1);
 
@@ -549,7 +549,7 @@ function String8 str8_from_str16(M_Arena *arena, String16 string)
     U64 alloc_count = string.size*3 + 1;
     U64 string_count = (U64)(dptr - memory);
     U64 unused_count = alloc_count - string_count - 1;
-    m_arena_pop_amount(arena, unused_count*sizeof(*memory));
+    mem_arena_pop_amount(arena, unused_count*sizeof(*memory));
 
     String8 result = {memory, string_count};
     return(result);
