@@ -8,7 +8,7 @@ set(MACOSX_RPATH false)    # Not sure what this does, but we don't need to insta
 
 if (MSVC)
     # warning level 4 and all warnings as errors
-    add_compile_options(/W4 /WX /wd4131 /wd4310 /wd5195 /wd4042 /wd4127 /wd4067 /wd4100 /wd4189 /wd5105 /wd4505 /EHsc)
+    add_compile_options(/W4 /WX /wd4131 /wd4310 /wd5195 /wd4042 /wd4127 /wd4067 /wd4100 /wd4189 /wd5105 /wd4505 /wd4201 /EHsc)
 else()
     # lots of warnings and all warnings as errors
     add_compile_options(-Wall -Wextra -pedantic -Werror -Wno-unused-parameter -Wno-deprecated-declarations -Wno-switch -Wno-unused-function -Wno-gnu-anonymous-struct -Wno-missing-braces -Wno-nested-anon-types)

@@ -4,7 +4,7 @@
 #define MATH_USE_SSE 1
 
 #if MATH_USE_SSE
-# include <x86intrin.h>
+# include <immintrin.h>
 // <mmintrin.h>  MMX
 // <xmmintrin.h> SSE
 // <emmintrin.h> SSE2
