@@ -108,6 +108,12 @@ cos_F32(F32 x)
 }
 
 inline_function F32
+acos_F32(F32 x)
+{
+    return acosf(x);
+}
+
+inline_function F32
 tan_F32(F32 x)
 {
     return tanf(x);
@@ -158,6 +164,12 @@ cos_F64(F64 x)
 }
 
 inline_function F64
+acos_F64(F64 x)
+{
+    return acos(x);
+}
+
+inline_function F64
 tan_F64(F64 x)
 {
     return tan(x);
@@ -181,6 +193,22 @@ pow_F64(F64 base, F64 x)
     return pow(base,x);
 }
 
+inline_function F32
+to_radians_F32(F32 degrees)
+{
+    F32 result = degrees * (pi_F32 / 180.0f);
+
+    return result;
+}
+
+inline_function F64
+to_radians_F64(F64 degrees)
+{
+    F64 result = degrees * (pi_F64 / 180.0f);
+
+    return result;
+}
+
 inline_function F32 
 lerp(F32 a, F32 t, F32 b)
 {
@@ -199,6 +227,24 @@ unlerp(F32 a, F32 x, F32 b)
 }
 
 // inline_function F32 lerp_range(I1F32 range, F32 t);
+
+inline_function F32
+clamp_F32(F32 min, F32 value, F32 max)
+{
+    F32 result = value;
+
+    if(result < min)
+    {
+        result = min;
+    }
+
+    if(result > max)
+    {
+        result = max;
+    }
+
+    return result;
+}
 
 inline_function F32
 trunc_F32(F32 x)
@@ -640,6 +686,18 @@ inline_function __m128 sse_linear_combine(__m128 left, M4F right)
 }
 #endif
 
+inline_function V3F
+vec_cross(V3F v1, V3F v2)
+{
+    V3F result;
+
+    result.x = (v1.y * v2.z) - (v1.z * v2.y);
+    result.y = (v1.z * v2.x) - (v1.x * v2.z);
+    result.z = (v1.x * v2.y) - (v1.y * v2.x);
+
+    return result;
+}
+
 inline_function M4F m4f(void)
 {
     M4F r = {0};
@@ -826,3 +884,457 @@ inline_function M4F operator/(const M4F &m, const F32 &s)
 
 // inline_function I1F32 intr_clamp_top(I1F32 r, F32 top);
 // inline_function I1U64 intr_clamp_top(I1U64 r, U64 top);
+
+//////////////////////////////////////////////////////////////
+// Graphics Functions
+
+inline_function M4F mat_orthographic_2d(F32 left, F32 right, F32 bottom, F32 top)
+{
+    return mat_orthographic_3d(left, right, bottom, top, -1.0f, 1.0f);
+}
+
+inline_function M4F mat_orthographic_3d(F32 left, F32 right, F32 bottom, F32 top, F32 near, F32 far)
+{
+    M4F result = {0};
+
+    // Unit Cube Scaling
+    result.e[0][0] = 2.0f / (right - left);
+    result.e[1][1] = 2.0f / (top - bottom);
+    result.e[2][2] = 2.0f / (near - far);
+    result.e[3][3] = 1.0f;
+
+    // Translation
+    result.e[3][0] = (left + right) / (left - right);
+    result.e[3][1] = (bottom + top) / (bottom - top);
+    result.e[3][2] = (far + near) / (near - far);
+
+    return result;
+}
+
+inline_function M4F mat_perspective(F32 fov, F32 aspectRatio, F32 near, F32 far)
+{
+    M4F result = {0};
+
+    // See https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluPerspective.xml
+
+    F32 cotangent = 1.0f / tan_F32(fov * (pi_F32 / 360.0f));
+
+    result.e[0][0] = cotangent / aspectRatio;
+    result.e[1][1] = cotangent;
+    result.e[2][3] = -1.0f;
+    result.e[2][2] = (near + far) / (near - far);
+    result.e[3][2] = (2.0f * near * far) / (near - far);
+    result.e[3][3] = 0.0f;
+
+    return result;
+}
+
+inline_function M4F mat_translate(V3F translation)
+{
+    M4F result = m4f(1.0f);
+
+    result.e[3][0] = translation.x;
+    result.e[3][1] = translation.y;
+    result.e[3][2] = translation.z;
+
+    return result;
+}
+
+inline_function M4F mat_rotate(F32 angle, V3F axis)
+{
+    M4F result = m4f(1.0f);
+
+    axis = vec_norm(axis);
+
+    F32 radians = to_radians_F32(angle);
+    F32 sinTheta = sin_F32(radians);
+    F32 cosTheta = cos_F32(radians);
+    F32 cosValue = 1.0f - cosTheta;
+
+    result.e[0][0] = (axis.x * axis.x * cosValue) + cosTheta;
+    result.e[0][1] = (axis.x * axis.y * cosValue) + (axis.z * sinTheta);
+    result.e[0][2] = (axis.x * axis.z * cosValue) - (axis.y * sinTheta);
+
+    result.e[1][0] = (axis.y * axis.x * cosValue) - (axis.z * sinTheta);
+    result.e[1][1] = (axis.y * axis.y * cosValue) + cosTheta;
+    result.e[1][2] = (axis.y * axis.z * cosValue) + (axis.x * sinTheta);
+
+    result.e[2][0] = (axis.z * axis.x * cosValue) + (axis.y * sinTheta);
+    result.e[2][1] = (axis.z * axis.y * cosValue) - (axis.x * sinTheta);
+    result.e[2][2] = (axis.z * axis.z * cosValue) + cosTheta;
+
+    return result;
+}
+
+inline_function M4F mat_scale(V3F scale)
+{
+    M4F result = m4f(1.0f);
+
+    result.e[0][0] = scale.x;
+    result.e[1][1] = scale.y;
+    result.e[2][2] = scale.z;
+
+    return result;
+}
+
+inline_function M4F mat_lookat(V3F eye, V3F target, V3F up)
+{
+    M4F result;
+
+    V3F f = vec_norm(target - eye);
+    V3F s = vec_norm(vec_cross(f, up));
+    V3F u = vec_cross(s, f);
+
+    result.e[0][0] = s.x;
+    result.e[0][1] = u.x;
+    result.e[0][2] = -f.x;
+    result.e[0][3] = 0.0f;
+    
+    result.e[1][0] = s.y;
+    result.e[1][1] = u.y;
+    result.e[1][2] = -f.y;
+    result.e[1][3] = 0.0f;
+    
+    result.e[2][0] = s.z;
+    result.e[2][1] = u.z;
+    result.e[2][2] = -f.z;
+    result.e[2][3] = 0.0f;
+
+    result.e[3][0] = -vec_dot(s, eye);
+    result.e[3][1] = -vec_dot(u, eye);
+    result.e[3][2] = vec_dot(f, eye);
+    result.e[3][3] = 1.0f;
+
+    return result;
+}
+
+//////////////////////////////////////////////////////////////
+// Quaternion operations
+
+inline_function Quaternion quat(F32 x, F32 y, F32 z, F32 w)
+{
+    Quaternion result;
+
+#if MATH_USE_SSE
+    result.internal = _mm_setr_ps(x, y, z, w);
+#else
+    result.x = x;
+    result.y = y;
+    result.z = z;
+    result.w = w;
+#endif
+
+    return result;
+}
+
+inline_function Quaternion quat(V4F v)
+{
+    Quaternion result;
+
+#if MATH_USE_SSE
+    result.internal = _mm_setr_ps(v.x, v.y, v.z, v.w);
+#else
+    result.x = v.x;
+    result.y = v.y;
+    result.z = v.z;
+    result.w = v.w;
+#endif
+
+    return result;
+}
+
+// This method taken from Mike Day at Insomniac Games.
+// https://d3cw3dd2w32x2b.cloudfront.net/wp-content/uploads/2015/01/matrix-to-quat.pdf
+//
+// Note that as mentioned at the top of the paper, the paper assumes the matrix
+// would be *post*-multiplied to a vector to rotate it, meaning the matrix is
+// the transpose of what we're dealing with. But, because our matrices are
+// stored in column-major order, the indices *appear* to match the paper.
+//
+// For example, m12 in the paper is row 1, column 2. We need to transpose it to
+// row 2, column 1. But, because the column comes first when referencing
+// elements, it looks like M.Elements[1][2].
+//
+// Don't be confused! Or if you must be confused, at least trust this
+// comment. :)
+inline_function Quaternion quat_from_mat4(M4F m)
+{
+    F32 t;
+    Quaternion q;
+
+    if(m.e[2][2] < 0.0f) 
+    {
+        if(m.e[0][0] > m.e[1][1])
+        {
+            t = 1 + m.e[0][0] - m.e[1][1] - m.e[2][2];
+            q = quat(t, m.e[0][1] + m.e[1][0], m.e[2][0] + m.e[0][2], m.e[1][2] - m.e[2][1]);
+        }
+        else
+        {
+            t = 1 - m.e[0][0] + m.e[1][1] - m.e[2][2];
+            q = quat(m.e[0][1] + m.e[1][0], t, m.e[1][2] + m.e[2][1], m.e[2][0] - m.e[0][2]);
+        }
+    }
+    else
+    {
+        if(m.e[0][0] < -m.e[1][1])
+        {
+            t = 1 - m.e[0][0] - m.e[1][1] + m.e[2][2];
+            q = quat(m.e[2][0] + m.e[0][2], m.e[1][2] + m.e[2][1], t, m.e[0][1] - m.e[1][0]);
+        }
+        else
+        {
+            t = 1 + m.e[0][0] + m.e[1][1] + m.e[2][2];
+            q = quat(m.e[1][2] - m.e[2][1], m.e[2][0] - m.e[0][2], m.e[0][1] - m.e[1][0], t);
+        }
+    }
+
+    q = q * (0.5f / sqrt_F32(t));
+
+    return q;
+}
+
+inline_function Quaternion quat_from_angle(V3F axis, F32 angleOfRotation)
+{
+    Quaternion result;
+
+    axis = vec_norm(axis);
+    F32 sineOfRotation = sin_F32(angleOfRotation / 2.0f);
+
+    result.xyz = axis * sineOfRotation;
+    result.w = cos_F32(angleOfRotation / 2.0f);
+
+    return result;
+}
+
+inline_function Quaternion operator+(const Quaternion &a, const Quaternion &b)
+{
+    Quaternion result;
+
+#if MATH_USE_SSE
+    result.internal = _mm_add_ps(a.internal, b.internal);
+#else
+    result.x = a.x + b.x;
+    result.y = a.y + b.y;
+    result.z = a.z + b.z;
+    result.w = a.w + b.w;
+#endif
+
+    return result;
+}
+
+inline_function Quaternion operator-(const Quaternion &a, const Quaternion &b)
+{
+    Quaternion result;
+
+#if MATH_USE_SSE
+    result.internal = _mm_sub_ps(a.internal, b.internal);
+#else
+    result.x = a.x - b.x;
+    result.y = a.y - b.y;
+    result.z = a.z - b.z;
+    result.w = a.w - b.w;
+#endif
+
+    return result;
+}
+
+inline_function Quaternion operator*(const Quaternion &a, const Quaternion &b)
+{
+    Quaternion result;
+
+#if MATH_USE_SSE
+    __m128 r1 = _mm_xor_ps(_mm_shuffle_ps(a.internal, a.internal, _MM_SHUFFLE(0,0,0,0)), _mm_setr_ps(0.f, -0.f, 0.f, -0.f));
+    __m128 r2 = _mm_shuffle_ps(b.internal, b.internal, _MM_SHUFFLE(0,1,2,3));
+    __m128 r3 = _mm_mul_ps(r2, r1);
+
+    r1 = _mm_xor_ps(_mm_shuffle_ps(a.internal, a.internal, _MM_SHUFFLE(1,1,1,1)), _mm_setr_ps(0.f, 0.f, -0.f, -0.f));
+    r2 = _mm_shuffle_ps(b.internal, b.internal, _MM_SHUFFLE(1,0,3,2));
+    r3 = _mm_add_ps(r3, _mm_mul_ps(r2, r1));
+
+    r1 = _mm_xor_ps(_mm_shuffle_ps(a.internal, a.internal, _MM_SHUFFLE(2,2,2,2)), _mm_setr_ps(-0.f, 0.f, 0.f, -0.f));
+    r2 = _mm_shuffle_ps(b.internal, b.internal, _MM_SHUFFLE(2,3,0,1));
+    r3 = _mm_add_ps(r3, _mm_mul_ps(r2, r1));
+
+    r1 = _mm_shuffle_ps(a.internal, a.internal, _MM_SHUFFLE(3,3,3,3));
+    r2 = _mm_shuffle_ps(b.internal, b.internal, _MM_SHUFFLE(3,2,1,0));
+    result.internal = _mm_add_ps(r3, _mm_mul_ps(r2, r1));
+#else
+    result.x = (a.x * b.w) + (a.y * b.z) - (a.z * b.y) + (a.w * b.x);
+    result.y = (-a.x * b.z) + (a.y * b.w) + (a.z * b.x) + (a.w * b.y);
+    result.z = (a.x * b.y) - (a.y * b.x) + (a.z * b.w) + (a.w * b.z);
+    result.w = (-a.x * b.x) - (a.y * b.y) - (a.z * b.z) + (a.w * b.w);
+#endif
+
+    return result;
+}
+
+inline_function Quaternion operator*(const Quaternion &q, const F32 &s)
+{
+    Quaternion result;
+
+#if MATH_USE_SSE
+    __m128 scalar = _mm_set1_ps(s);
+    result.internal = _mm_mul_ps(q.internal, scalar);
+#else
+    result.x = q.x * s;
+    result.y = q.y * s;
+    result.z = q.z * s;
+    result.w = q.w * s;
+#endif
+
+    return result;
+}
+
+inline_function Quaternion operator/(const Quaternion &q, const F32 &s)
+{
+    Quaternion result;
+
+#if MATH_USE_SSE
+    __m128 scalar = _mm_set1_ps(s);
+    result.internal = _mm_div_ps(q.internal, scalar);
+#else
+    result.x = q.x / s;
+    result.y = q.y / s;
+    result.z = q.z / s;
+    result.w = q.w / s;
+#endif
+
+    return result;
+}
+
+inline_function F32 quat_dot(Quaternion a, Quaternion b)
+{
+    // NOTE(james): Same exact implementation as the V4F dot product
+    F32 result;
+
+#if MATH_USE_SSE
+# if 0
+    // NOTE(james): Requires SSE4 and most info says that it does not
+    // work very well.
+    __m128 c = _mm_dp_ps(a.interal, b.internal, 0xff);
+    result = _mm_cvtss_f32(c);
+# endif
+# if 1
+    // NOTE: Requires SSE3
+    __m128 c = _mm_mul_ps(a.internal, b.internal);
+    c = _mm_hadd_ps(c, c);
+    c = _mm_hadd_ps(c, c);
+    result = _mm_cvtss_f32(c);
+# endif
+# if 0
+    // NOTE: Original SSE version 
+    __m128 r1 = _mm_mul_ps(a.internal, b.internal);
+    __m128 r2 = _mm_shuffle_ps(r1, r1, _MM_SHUFFLE(2, 3, 0, 1));
+    r1 = _mm_add_ps(r1, r2);
+    r2 = _mm_shuffle_ps(r1, r1, _MM_SHUFFLE(0, 1, 2, 3));
+    r1 = _mm_add_ps(r1, r2);
+    _mm_store_ss(&Result, r1);
+# endif
+#else
+    return (a.x*b.x) + (a.y*b.y) + (a.z*b.z) + (a.w*b.w);
+#endif
+
+    return result;
+}
+
+inline_function Quaternion quat_inverse(Quaternion q)
+{
+    Quaternion result = quat(-q.x, -q.y, -q.z, q.w);
+    result = result / quat_dot(q, q);
+
+    return result;
+}
+
+inline_function Quaternion quat_norm(Quaternion q)
+{
+    Quaternion result;
+
+    F32 length = sqrt_F32(quat_dot(q,q));
+    result = q / length;
+
+    return result;
+}
+
+inline_function Quaternion quat_nlerp(Quaternion a, F32 time, Quaternion b)
+{
+    Quaternion result;
+
+#if MATH_USE_SSE
+    __m128 sleft = _mm_set1_ps(1.0f - time);
+    __m128 sright = _mm_set1_ps(time);
+    __m128 r1 = _mm_mul_ps(a.internal, sleft);
+    __m128 r2 = _mm_mul_ps(b.internal, sright);
+    result.internal = _mm_add_ps(r1, r2);
+#else
+    result.x = lerp(a.x, time, b.x);
+    result.y = lerp(a.y, time, b.y);
+    result.z = lerp(a.z, time, b.z);
+    result.w = lerp(a.w, time, b.w);
+#endif
+
+    result = quat_norm(result);
+
+    return result;
+}
+
+inline_function Quaternion quat_slerp(Quaternion a, F32 time, Quaternion b)
+{
+    Quaternion result;
+    Quaternion qleft;
+    Quaternion qright;
+
+    F32 cosTheta = quat_dot(a, b);
+    F32 angle = acos_F32(cosTheta);
+
+    F32 s1 = sin_F32((1.0f - time) * angle);
+    F32 s2 = sin_F32(time * angle);
+    F32 sI = 1.0f / sin_F32(angle);
+
+    qleft = a * s1;
+    qright = b * s2;
+
+    result = qleft + qright;
+    result = result * sI;
+
+    return result;
+}
+
+inline_function M4F quat_to_mat4(Quaternion q)
+{
+    M4F result;
+
+    Quaternion nq = quat_norm(q);
+
+    F32 xx = nq.x * nq.x;
+    F32 yy = nq.y * nq.y;
+    F32 zz = nq.z * nq.z;
+    F32 xy = nq.x * nq.y;
+    F32 xz = nq.x * nq.z;
+    F32 yz = nq.y * nq.z;
+    F32 wx = nq.w * nq.x;
+    F32 wy = nq.w * nq.y;
+    F32 wz = nq.w * nq.z;
+
+    result.e[0][0] = 1.0f - 2.0f * (yy + zz);
+    result.e[0][1] = 2.0f * (xy + wz);
+    result.e[0][2] = 2.0f * (xz - wy);
+    result.e[0][3] = 0.0f;
+
+    result.e[1][0] = 2.0f * (xy - wz);
+    result.e[1][1] = 1.0f - 2.0f * (xx + zz);
+    result.e[1][2] = 2.0f * (yz + wx);
+    result.e[1][3] = 0.0f;
+
+    result.e[2][0] = 2.0f * (xz + wy);
+    result.e[2][1] = 2.0f * (yz - wx);
+    result.e[2][2] = 1.0f - 2.0f * (xx + yy);
+    result.e[2][3] = 0.0f;
+
+    result.e[3][0] = 0.0f;
+    result.e[3][1] = 0.0f;
+    result.e[3][2] = 0.0f;
+    result.e[3][3] = 1.0f;
+
+    return result;
+}

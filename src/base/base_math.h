@@ -72,6 +72,9 @@ union M4F
 
     inline V4F operator[](const int &index)
     {
+#if MATH_USE_SSE
+        V4F result = { .internal = cols[index] };
+#else
         F32* col = e[index];
         V4F result = {
             .x = col[0],
@@ -79,6 +82,7 @@ union M4F
             .z = col[2],
             .w = col[3]
         };
+#endif
         return(result);
     }
 };
@@ -118,6 +122,7 @@ inline_function F32 sqrt_F32(F32 x);
 inline_function F32 rsqrt_F32(F32 x);
 inline_function F32 sin_F32(F32 x);
 inline_function F32 cos_F32(F32 x);
+inline_function F32 acos_F32(F32 x);
 inline_function F32 tan_F32(F32 x);
 inline_function F32 atan_F32(F32 x);
 inline_function F32 ln_F32(F32 x);
@@ -127,16 +132,21 @@ inline_function F64 sqrt_F64(F64 x);
 inline_function F64 rsqrt_F64(F64 x);
 inline_function F64 sin_F64(F64 x);
 inline_function F64 cos_F64(F64 x);
+inline_function F64 acos_F64(F64 x);
 inline_function F64 tan_F64(F64 x);
 inline_function F64 atan_F64(F64 x);
 inline_function F64 ln_F64(F64 x);
 inline_function F64 pow_F64(F64 base, F64 x);
+
+inline_function F32 to_radians_F32(F32 degrees);
+inline_function F64 to_radians_F64(F64 degrees);
 
 inline_function F32 lerp(F32 a, F32 t, F32 b);
 inline_function F32 unlerp(F32 a, F32 x, F32 b);
 
 // inline_function F32 lerp_range(I1F32 range, F32 t);
 
+inline_function F32 clamp_F32(F32 min, F32 value, F32 max);
 inline_function F32 trunc_F32(F32 x);
 inline_function F32 floor_F32(F32 x);
 inline_function F32 ceil_F32(F32 x);
@@ -209,10 +219,13 @@ inline_function V2F vec_fastnorm(V2F a);
 inline_function V3F vec_fastnorm(V3F a);
 inline_function V4F vec_fastnorm(V4F a);
 
+inline_function V3F vec_cross(V3F v1, V3F v2);
+
 inline_function M4F m4f(void);
 inline_function M4F m4f(F32 diagonal);
 inline_function M4F m4f_identity(void);
 inline_function M4F mat_transpose(M4F a);
+
 
 inline_function M4F operator+(const M4F &a, const M4F &b);
 inline_function M4F operator-(const M4F &a, const M4F &b);
@@ -241,5 +254,41 @@ inline_function M4F operator/(const M4F &m, const F32 &s);
 
 // inline_function I1F32 intr_clamp_top(I1F32 r, F32 top);
 // inline_function I1U64 intr_clamp_top(I1U64 r, U64 top);
+
+//////////////////////////////////////////////////////////////
+// Graphics Functions
+
+inline_function M4F mat_orthographic_2d(F32 left, F32 right, F32 bottom, F32 top);
+inline_function M4F mat_orthographic_3d(F32 left, F32 right, F32 bottom, F32 top, F32 near, F32 far);
+inline_function M4F mat_perspective(F32 fov, F32 aspectRatio, F32 near, F32 far);
+
+inline_function M4F mat_translate(V3F translation);
+inline_function M4F mat_rotate(F32 angle, V3F axis);
+inline_function M4F mat_scale(V3F scale);
+inline_function M4F mat_lookat(V3F eye, V3F target, V3F up);
+
+//////////////////////////////////////////////////////////////
+// Quaternion operations
+
+inline_function Quaternion quat(F32 x, F32 y, F32 z, F32 w);
+inline_function Quaternion quat(V4F v);
+inline_function Quaternion quat_from_mat4(M4F m);
+inline_function Quaternion quat_from_angle(V3F axis, F32 angleOfRotation);
+
+inline_function Quaternion operator+(const Quaternion &a, const Quaternion &b);
+inline_function Quaternion operator-(const Quaternion &a, const Quaternion &b);
+inline_function Quaternion operator*(const Quaternion &a, const Quaternion &b);
+inline_function Quaternion operator*(const Quaternion &q, const F32 &s);
+inline_function Quaternion operator/(const Quaternion &q, const F32 &s);
+
+inline_function F32 quat_dot(Quaternion a, Quaternion b);
+inline_function Quaternion quat_inverse(Quaternion q);
+inline_function Quaternion quat_norm(Quaternion q);
+
+inline_function Quaternion quat_nlerp(Quaternion a, F32 time, Quaternion b);
+inline_function Quaternion quat_slerp(Quaternion a, F32 time, Quaternion b);
+
+inline_function M4F quat_to_mat4(Quaternion q);
+
 
 #endif
