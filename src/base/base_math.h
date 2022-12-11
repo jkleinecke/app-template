@@ -164,6 +164,11 @@ inline_function V2F operator+(const V2F &a, const V2F &b);
 inline_function V3F operator+(const V3F &a, const V3F &b);
 inline_function V4F operator+(const V4F &a, const V4F &b);
 
+inline_function V2I operator-(const V2I &a);
+inline_function V2F operator-(const V2F &a);
+inline_function V3F operator-(const V3F &a);
+inline_function V4F operator-(const V4F &a);
+
 inline_function V2I operator-(const V2I &a, const V2I &b);
 inline_function V2F operator-(const V2F &a, const V2F &b);
 inline_function V3F operator-(const V3F &a, const V3F &b);

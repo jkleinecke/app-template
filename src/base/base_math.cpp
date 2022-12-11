@@ -345,6 +345,34 @@ inline_function V4F operator+(const V4F &a, const V4F &b)
     return r;
 }
 
+inline_function V2I operator-(const V2I &a)
+{
+    V2I r = {.x = -a.x, .y = -a.y};
+    return r;
+}
+
+inline_function V2F operator-(const V2F &a)
+{
+    V2F r = {.x = -a.x, .y = -a.y};
+    return r;
+}
+
+inline_function V3F operator-(const V3F &a)
+{
+    V3F r = {.x = -a.x, .y = -a.y, .z = -a.z};
+    return r;
+}
+
+inline_function V4F operator-(const V4F &a)
+{
+#if MATH_USE_SSE
+    V4F r = {.internal = _mm_xor_ps(a.internal, _mm_set1_ps(-0.0f))};
+#else
+    V4F r = {.x = -a.x, .y = -a.y, .z = -a.z, .w = -a.w};
+#endif
+    return r;
+}
+
 inline_function V2I operator-(const V2I &a, const V2I &b)
 {
     V2I r = {a.x - b.x, a.y - b.y};
