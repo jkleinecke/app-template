@@ -12,7 +12,7 @@ Windows: Run ninja from the visual studio command prompt.
 * Basic Types
 * Memory
 * Strings
-* (TODO) Math
+* Math
 
 # OS Layer
 
@@ -22,3 +22,9 @@ Windows: Run ninja from the visual studio command prompt.
 * Time
 * Libraries
 * Entropy
+
+# Gfx Layer
+
+* (TODO) Low-Level API Abstraction
+* (TODO) High-Level 2D Drawing
+* (TODO) High-Level 3D Rendering
