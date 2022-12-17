@@ -43,10 +43,13 @@
     Glue(PFN_,name)    name
 #endif
 
+#define GFX_USE_MULTIPLE_RENDER_APIS 0
+
 #if OS_WINDOWS
 //# define DX11 1
 # define DX12   1
 // # define VULKAN 1
+// # define GFX_USE_MULTIPLE_RENDER_APIS
 #elif OS_MACOS
 # define METAL 1
 #elif OS_LINUX
@@ -64,6 +67,9 @@
 #endif
 #if !defined(METAL)
 # define METAL 0
+#endif
+#if !defined(GLES)
+# define GLES 0
 #endif
 
 enum
@@ -91,11 +97,8 @@ enum
 #endif
 };
 
-// Raytracing
-typedef void* GfxRaytracing;
-struct GfxAccelerationStructure;    // TODO(james): Is this only valid for DX12?
 
-typedef void* GfxContext;
+typedef void* GfxGpuContext;
 typedef void* GfxFence;
 typedef void* GfxSemaphore;
 typedef void* GfxQueue;
@@ -113,6 +116,29 @@ typedef void* GfxPipelineCache;
 typedef void* GfxDescriptorSet;
 typedef void* GfxCommandSignature;
 typedef void* GfxQueryPool;
+
+// Raytracing
+typedef void* GfxRaytracing;
+struct GfxAccelerationStructure;    // TODO(james): Is this only valid for DX12?
+
+// TODO(james): abstract this out into a more general application logging system
+enum GfxLogLevel
+{
+    kLog_None        = 0,
+    kLog_Raw         = 0x1,
+    kLog_Debug       = 0x2,
+    kLog_Info        = 0x4,
+    kLog_Warning     = 0x8,
+    kLog_Error       = 0x10,
+    kLog_All         = 0xFF,
+};
+
+enum GfxGpuMode
+{
+    kGpuMode_Single = 0,
+    kGpuMode_Linked,
+    kGpuMode_Unlinked,
+};
 
 enum GfxMarkerType
 {
@@ -422,6 +448,152 @@ enum GfxSampleLocation
 {
     kSampleLocation_Cosited = 0,
     kSampleLocation_Midpoint = 1,
+};
+
+enum GfxTextureCreationFlags
+{
+    /// Default flag (Texture will use default allocation strategy decided by the api specific allocator)
+    kTextureCreationFlag_None = 0,
+    /// Texture will allocate its own memory (COMMITTED resource)
+    kTextureCreationFlag_OwnMemoryBit = 0x01,
+    /// Texture will be allocated in memory which can be shared among multiple processes
+    kTextureCreationFlag_ExportBit = 0x02,
+    /// Texture will be allocated in memory which can be shared among multiple gpus
+    kTextureCreationFlag_ExportAdapterBit = 0x04,
+    /// Texture will be imported from a handle created in another process
+    kTextureCreationFlag_ImportBit = 0x08,
+    /// Use ESRAM to store this texture
+    kTextureCreationFlag_Esram = 0x10,
+    /// Use on-tile memory to store this texture
+    kTextureCreationFlag_OnTile = 0x20, 
+    /// Prevent compression meta data from generating (XBox)
+    kTextureCreationFlag_NoCompression = 0x40,
+    /// Force 2D instead of automatically determining dimension based on width, height, depth
+    kTextureCreationFlag_Force2d = 0x80,
+    /// Force 3D instead of automatically determining dimension based on width, height, depth
+    kTextureCreationFlag_Force3d = 0x100,
+    /// Display target
+    kTextureCreationFlag_AllowDisplayTarget = 0x200,
+    /// Create an sRGB texture.
+    kTextureCreationFlag_SRGB = 0x400,
+    /// Create a normal map texture
+    kTextureCreationFlag_NormalMap = 0x800,
+    /// Fast clear
+    kTextureCreationFlag_FastClear = 0x1000,
+    /// Fragment mask
+    kTextureCreationFlag_FragMask = 0x2000,
+    /// Doubles the amount of array layers of the texture when rendering VR. Also forces the texture to be a 2D Array texture.
+    kTextureCreationFlag_VrMultiview = 0x4000,
+    /// Binds the FFR fragment density if this texture is used as a render target.
+    kTextureCreationFlag_VrFoveatedRendering = 0x8000,
+    /// Creates resolve attachment for auto resolve (MSAA on tiled architecture - Resolve can be done on tile through render pass)
+    kTextureCreationFlag_CreateResolveAttachment = 0x10000,
+};
+
+enum  GfxDescriptorType
+{
+    kDescriptorType_Undefined = 0,
+    kDescriptorType_Sampler = 0x01,
+    /// SRV Read only texture
+    kDescriptorType_Texture = (kDescriptorType_Sampler << 1),
+    /// UAV Texture
+    kDescriptorType_RWTexture = (kDescriptorType_Texture << 1),
+    /// SRV Read only buffer
+    kDescriptorType_Buffer = (kDescriptorType_RWTexture << 1),
+    kDescriptorType_BufferRaw = (kDescriptorType_Buffer | (kDescriptorType_Buffer << 1)),
+    /// UAV Buffer
+    kDescriptorType_RWBuffer = (kDescriptorType_Buffer << 2),
+    kDescriptorType_RWBufferRaw = (kDescriptorType_RWBuffer | (kDescriptorType_RWBuffer << 1)),
+    /// Uniform Buffer
+    kDescriptorType_UniformBuffer = (kDescriptorType_RWBuffer << 2),
+    /// Push constant / Root constant
+    kDescriptorType_RootConstant = (kDescriptorType_UniformBuffer << 1),
+    /// IA
+    kDescriptorType_VertexBuffer = (kDescriptorType_RootConstant << 1),
+    kDescriptorType_IndexBuffer = (kDescriptorType_VertexBuffer << 1),
+    kDescriptorType_IndirectBuffer = (kDescriptorType_IndexBuffer << 1),
+    /// Cubemap SRV
+    kDescriptorType_TextureCube = (kDescriptorType_Texture | (kDescriptorType_IndirectBuffer << 1)),
+    /// RTV / DSV per mip slice
+    kDescriptorType_RenderTargetMipSlices = (kDescriptorType_IndirectBuffer << 2),
+    /// RTV / DSV per array slice
+    kDescriptorType_RenderTargetArraySlices = (kDescriptorType_RenderTargetMipSlices << 1),
+    /// RTV / DSV per depth slice
+    kDescriptorType_RenderTargetDepthSlices = (kDescriptorType_RenderTargetArraySlices << 1),
+    kDescriptorType_RayTracing = (kDescriptorType_RenderTargetDepthSlices << 1),
+    kDescriptorType_IndirectCommandBuffer = (kDescriptorType_RayTracing << 1),
+#if VULKAN
+    /// Subpass input (descriptor type only available in Vulkan)
+    kDescriptorType_InputAttachment = (kDescriptorType_IndirectCommandBuffer << 1),
+    kDescriptorType_TexelBuffer = (kDescriptorType_InputAttachment << 1),
+    kDescriptorType_RWTexelBuffer = (kDescriptorType_TexelBuffer << 1),
+    kDescriptorType_CombinedImageSampler = (kDescriptorType_RW_TexelBuffer << 1),
+
+    /// Khronos extension ray tracing
+    kDescriptorType_AccelerationStructure = (kDescriptorType_CombinedImageSampler << 1),
+    kDescriptorType_AccelerationStructureBuildInput = (kDescriptorType_AccelerationStructure << 1),
+    kDescriptorType_ShaderDeviceAddress = (kDescriptorType_AccelerationStructureBuildInput << 1),
+    kDescriptorType_ShaderBindingTable = (kDescriptorType_ShaderDeviceAddress << 1),
+#endif
+};
+
+enum GfxResourceMemoryUsage
+{
+    /// No intended memory usage specified.
+    kMemoryUsage_Unknown = 0,
+    /// Memory will be used on device only, no need to be mapped on host.
+    kMemoryUsage_GpuOnly = 1,
+    /// Memory will be mapped on host. Could be used for transfer to device.
+    kMemoryUsage_CpuOnly = 2,
+    /// Memory will be used for frequent (dynamic) updates from host and reads on device.
+    kMemoryUsage_CpuToGpu = 3,
+    /// Memory will be used for writing on device and readback on host.
+    kMemoryUsage_GpuToCpu = 4,
+};
+
+enum GfxBufferCreationFlags
+{
+    /// Default flag (Buffer will use aliased memory, buffer will not be cpu accessible until mapBuffer is called)
+    kBufferCreationFlag_None = 0x01,
+    /// Buffer will allocate its own memory (COMMITTED resource)
+    kBufferCreationFlag_OwnMemoryBit = 0x02,
+    /// Buffer will be persistently mapped
+    kBufferCreationFlag_PersistentMapBit = 0x04,
+    /// Use ESRAM to store this buffer
+    kBufferCreationFlag_Esram = 0x08,
+    /// Flag to specify not to allocate descriptors for the resource
+    kBufferCreationFlag_NoDescriptorViewCreation = 0x10,
+#if VULKAN
+    kBufferCreationFlag_HostVisible = 0x100,
+    kBufferCreationFlag_HostCoherent = 0x200,
+#endif
+};
+
+enum GfxQueueType
+{
+    kQueueType_Graphics = 0,
+    kQueueType_Transfer, 
+    kQueueType_Compute,
+};
+
+enum GfxQueueFlag
+{
+    kQueueFlag_None = 0x0,
+    kQueueFlag_DisableGpuTimeout = 0x01,
+    kQueueFlag_InitMicroprofile = 0x02,
+};
+
+enum GfxQueuePriority
+{
+    kQueuePriority_Normal,
+    kQueuePriority_High,
+    kQueuePriority_GlobalRealtime,
+};
+
+enum GfxSwapChainCreationFlags
+{
+    kSwapChainCreationFlag_None = 0x0,
+    kSwapChainCreationFlag_EnableFoveatedRendering = 0x1,
 };
 
 struct GfxQueryDesc
@@ -848,120 +1020,347 @@ struct GfxSamplerDesc
 
 struct GfxRenderTargetDesc
 {
-
+    /// Texture creation flags (decides memory allocation strategy, sharing access,...)
+	GfxTextureCreationFlags     flags;
+	/// Width
+	U32                         width;
+	/// Height
+	U32                         height;
+	/// Depth (Should be 1 if not a mType is not TEXTURE_TYPE_3D)
+	U32                         depth;
+	/// Texture array size (Should be 1 if texture is not a texture array or cubemap)
+	U32                         array_size;
+	/// Number of mip levels
+	U32                         mip_levels;
+	/// MSAA
+	GfxSampleCount              sample_count;
+	/// Internal image format
+	TinyImageFormat             format;
+	/// What state will the texture get created in
+	GfxResourceState            start_state;
+	/// Optimized clear value (recommended to use this same value when clearing the rendertarget)
+	GfxClearValue               clear_value;
+	/// The image quality level. The higher the quality, the lower the performance. The valid range is between zero and the value appropriate for mSampleCount
+	U32                         sample_quality;
+	/// Descriptor creation
+	GfxDescriptorType           descriptors;
+	const void*                 native_handle;
+	/// Debug name used in gpu profile
+	const char*                 name;
+	/// GPU indices to share this texture
+	U32*                        shared_node_indices;
+	/// Number of GPUs to share this texture
+	U32                         shared_node_index_count;
+	/// GPU which will own this texture
+	U32                         node_index;
 };
 
 struct GfxSubResourceDataDesc
 {
-
+    U64 src_offset;
+    U32 mip_level;
+    U32 array_layer;
+#if DX11 || DX12 || METAL || VULKAN
+    U32 row_pitch;
+    U32 slice_pitch;
+#endif
 };
 
 struct GfxReadRange
 {
-
+    U64 offset;
+    U64 size;
 };
 
 struct GfxTextureDesc
 {
-
+    /// Optimized clear value (recommended to use this same value when clearing the rendertarget)
+	GfxClearValue                   clear_value;
+	/// Pointer to native texture handle if the texture does not own underlying resource
+	const void*                     native_handle;
+	/// Debug name used in gpu profile
+	const char*                     name;  
+	/// GPU indices to share this texture
+	U32*                            shader_node_indices;
+#if VULKAN
+	VkSamplerYcbcrConversionInfo*   pVkSamplerYcbcrConversionInfo;
+#endif
+	/// Texture creation flags (decides memory allocation strategy, sharing access,...)
+	GfxTextureCreationFlags         flags;
+	/// Width
+	U32                             width;
+	/// Height
+	U32                             height;
+	/// Depth (Should be 1 if not a mType is not TEXTURE_TYPE_3D)
+	U32                             depth;
+	/// Texture array size (Should be 1 if texture is not a texture array or cubemap)
+	U32                             array_size;
+	/// Number of mip levels
+	U32                             mip_levels;
+	/// Number of multisamples per pixel (currently Textures created with mUsage TEXTURE_USAGE_SAMPLED_IMAGE only support SAMPLE_COUNT_1)
+	GfxSampleCount                  sample_count;
+	/// The image quality level. The higher the quality, the lower the performance. The valid range is between zero and the value appropriate for mSampleCount
+	U32                             sample_quality;
+	///  image format
+	TinyImageFormat                 format;
+	/// What state will the texture get created in
+	GfxResourceState                start_state;
+	/// Descriptor creation
+	GfxDescriptorType               descriptors;
+	/// Number of GPUs to share this texture
+	U32                             shader_node_index_count;
+	/// GPU which will own this texture
+	U32                             node_index;
 };
 
 struct GfxBufferDesc
 {
-
+    /// Size of the buffer (in bytes)
+	U64                     size;
+	/// Set this to specify a counter buffer for this buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
+	GfxBuffer               counter_buffer;
+	/// Index of the first element accessible by the SRV/UAV (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
+	U64                     first_element;
+	/// Number of elements in the buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
+	U64                     element_count;
+	/// Size of each element (in bytes) in the buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
+	U64                     struct_stride;
+	/// Debug name used in gpu profile
+	const char*             name;
+	U32                     shared_node_indices;
+	/// Alignment
+	U32                     alignment;
+	/// Decides which memory heap buffer will use (default, upload, readback)
+	GfxResourceMemoryUsage  memory_usage;
+	/// Creation flags of the buffer
+	GfxBufferCreationFlags  flags;
+	/// What type of queue the buffer is owned by
+	GfxQueueType            queue_type;
+	/// What state will the buffer get created in
+	GfxResourceState        start_state;
+	/// ICB draw type
+	GfxIndirectArgumentType icb_draw_type;
+	/// ICB max vertex buffers slots count
+	U32                     icb_max_command_count;
+	/// Format of the buffer (applicable to typed storage buffers (Buffer<T>)
+	TinyImageFormat         format;
+	/// Flags specifying the suitable usage of this buffer (Uniform buffer, Vertex Buffer, Index Buffer,...)
+	GfxDescriptorType       descriptors;
+	/// The index of the GPU in SLI/Cross-Fire that owns this buffer, or the Renderer index in unlinked mode.
+	U32                     node_index;
+	U32                     shared_node_index_count;
 };
 
 struct GfxCommandDesc
 {
-
+    GfxCommandPool      pool;
+    B32                 secondary;
 };
 
 struct GfxCommandPoolDesc
 {
-
+    GfxQueue            queue;
+    B32                 transient;
 };
 
 struct GfxSwapChainDesc
 {
-
+    /// Window handle
+    OSWindow                    window_handle;
+    /// Queues which should be allowed to present
+    GfxQueue*                   present_queues;
+    /// Number of present queues
+    U32                         present_queue_count;
+    /// Number of backbuffers in this swapchain
+    U32                         image_count;
+    /// Width of the swapchain
+    U32                         width;
+    /// Height of the swapchain
+    U32                         height;
+    /// Color format of the swapchain
+    TinyImageFormat             color_format;
+    /// Clear value
+    GfxClearValue               clear_color_value;
+    /// Swapchain creation flags
+    GfxSwapChainCreationFlags   flags;
+    /// Set whether swap chain will be presented using vsync
+    B32                         enable_vsync;
+    /// We can toggle to using FLIP model if app desires.
+    B32                         use_flip_swap_effect;
 };
 
 struct GfxQueueDesc
 {
-
+    GfxQueueType        type;
+    GfxQueueFlag        flag;
+    GfxQueuePriority    priority;
+    U32                 node_index;
 };
 
-struct GfxContextDesc
+typedef void(*GfxLogFn)(GfxLogLevel, const char*, const char*);
+
+enum GfxShaderTarget
 {
-
+#if DX11
+    kShaderTarget_5_0,
+#endif
+    kShaderTarget_5_1,
+    kShaderTarget_6_0,
+    kShaderTarget_6_1,
+    kShaderTarget_6_2,
+    kShaderTarget_6_3,
+    kShaderTarget_6_4,
 };
 
-// TODO(james): Figure out the memory allocation scheme for the Gfx API
-function GfxContext gfx_init_context(GfxContextDesc* desc);
+
+struct GfxExtendedSettings
+{
+    U32             count;
+    U32*            settings;
+    const char**    names;
+};
+
+struct GfxGpuContextDesc
+{
+#if GFX_USE_MULTIPLE_RENDER_APIS
+    union {
+#endif
+#if DX12
+        // D3D_FEATURE_LEVEL   dx_feature_level;
+#endif
+#if VULKAN
+        struct {
+            const char** instance_layers;
+            const char** instance_extensions;
+            const char** device_extensions;
+            U32          instance_layer_count;
+            U32          instance_extension_count;
+            U32          device_extension_count;
+            /// flag to specify whether to request all queues from the gpu or just one of each type
+            /// Will affect memory usage - around 200MB more used if all queues are requested
+            B32          request_all_available_queues;
+        } vulkan;
+#endif
+#if DX11
+        struct {
+            /// force feature level 10 for compatibility
+            B32         use_dx10;
+            /// pick the first valid gpu or use GpuConfig
+            B32         use_default_gpu;
+        } d3d11;
+#endif
+#if GLES
+        // TODO(james): Add support for GLES?
+#endif
+#if GFX_USE_MULTIPLE_RENDER_APIS
+    };
+#endif
+	/// This results in new validation not possible during API calls on the CPU, by creating patched shaders that have validation added directly to the shader.
+	/// However, it can slow things down a lot, especially for applications with numerous PSOs. Time to see the first render frame may take several minutes
+    B32                     enable_gpu_based_validation;
+
+    GfxLogFn                log_fn;
+    GfxShaderTarget         shader_target;
+    GfxGpuMode              gpu_mode;
+
+    GfxExtendedSettings*    extended_settings;
+    
+    // TODO(james): support multiple gpu context creation
+    // GfxContent*          context
+    U32                     gpu_index;
+};
+
+enum GfxApiType
+{
+    kGfxApi_PlatformDefault = 0,
+#if DX11
+    kGfxApi_D3D11,
+#endif
+#if DX12
+    kGfxApi_D3D12,
+#endif
+#if VULKAN
+    kGfxApi_Vulkan,
+#endif
+#if METAL
+    kGfxApi_Metal,
+#endif
+#if GLES
+    kGfxApi_GLES,
+#endif
+};
+
+struct GfxApi;
+function GfxApi gfx_init_api(GfxApiType type);
 
 struct GfxApi
 {
-    GFX_API_FUNCTION(GfxFence, addFence, GfxContext gc);
-    GFX_API_FUNCTION(void, removeFence, GfxContext gc, GfxFence fence);
+    void*   native_handle;
 
-    GFX_API_FUNCTION(GfxSemaphore, addSemaphore, GfxContext gc);
-    GFX_API_FUNCTION(void, removeSemaphore, GfxContext gc, GfxSemaphore semaphore);
+    // TODO(james): Figure out the memory allocation scheme for the Gfx API
+    GFX_API_FUNCTION(GfxGpuContext, initGpu, GfxGpuContextDesc* desc);
 
-    GFX_API_FUNCTION(GfxQueue, addQueue, GfxContext gc, GfxQueueDesc* desc);
-    GFX_API_FUNCTION(void, removeQueue, GfxContext gc, GfxQueue queue);
+    GFX_API_FUNCTION(GfxFence, addFence, GfxGpuContext gc);
+    GFX_API_FUNCTION(void, removeFence, GfxGpuContext gc, GfxFence fence);
 
-    GFX_API_FUNCTION(GfxSwapChain, addSwapChain, GfxContext gc, GfxSwapChainDesc* desc);
-    GFX_API_FUNCTION(void, removeSwapChain, GfxContext gc, GfxSwapChain swapchain);
+    GFX_API_FUNCTION(GfxSemaphore, addSemaphore, GfxGpuContext gc);
+    GFX_API_FUNCTION(void, removeSemaphore, GfxGpuContext gc, GfxSemaphore semaphore);
+
+    GFX_API_FUNCTION(GfxQueue, addQueue, GfxGpuContext gc, GfxQueueDesc* desc);
+    GFX_API_FUNCTION(void, removeQueue, GfxGpuContext gc, GfxQueue queue);
+
+    GFX_API_FUNCTION(GfxSwapChain, addSwapChain, GfxGpuContext gc, GfxSwapChainDesc* desc);
+    GFX_API_FUNCTION(void, removeSwapChain, GfxGpuContext gc, GfxSwapChain swapchain);
 
     // command pool operations
-    GFX_API_FUNCTION(GfxCommandPool, addCommandPool, GfxContext gc, GfxCommandPoolDesc* desc);
-    GFX_API_FUNCTION(void, removeCommandPool, GfxContext gc, GfxCommandPool commandpool);
-    GFX_API_FUNCTION(GfxCommand, addCommand, GfxContext gc, GfxCommandPoolDesc* desc);
-    GFX_API_FUNCTION(void, removeCommand, GfxContext gc, GfxCommand cmd);
-    GFX_API_FUNCTION(void, addCommands, GfxContext gc, GfxCommandDesc* desc, U32 count, GfxCommand* out_commands);
-    GFX_API_FUNCTION(void, removeCommands, GfxContext gc, U32 count, GfxCommand* commands);
+    GFX_API_FUNCTION(GfxCommandPool, addCommandPool, GfxGpuContext gc, GfxCommandPoolDesc* desc);
+    GFX_API_FUNCTION(void, removeCommandPool, GfxGpuContext gc, GfxCommandPool commandpool);
+    GFX_API_FUNCTION(GfxCommand, addCommand, GfxGpuContext gc, GfxCommandPoolDesc* desc);
+    GFX_API_FUNCTION(void, removeCommand, GfxGpuContext gc, GfxCommand cmd);
+    GFX_API_FUNCTION(void, addCommands, GfxGpuContext gc, GfxCommandDesc* desc, U32 count, GfxCommand* out_commands);
+    GFX_API_FUNCTION(void, removeCommands, GfxGpuContext gc, U32 count, GfxCommand* commands);
 
     //
     //  All buffer, texture loading handled by the resource system -> GfxResourceLoader
     //
-    GFX_API_FUNCTION(GfxBuffer, addBuffer, GfxContext gc, GfxBufferDesc* desc);
-    GFX_API_FUNCTION(void, removeBuffer, GfxContext gc, GfxBuffer buffer);
-    GFX_API_FUNCTION(void, mapBuffer, GfxContext gc, GfxBuffer buffer, GfxReadRange* range);
-    GFX_API_FUNCTION(void, unmapBuffer, GfxContext gc, GfxBuffer buffer);
+    GFX_API_FUNCTION(GfxBuffer, addBuffer, GfxGpuContext gc, GfxBufferDesc* desc);
+    GFX_API_FUNCTION(void, removeBuffer, GfxGpuContext gc, GfxBuffer buffer);
+    GFX_API_FUNCTION(void, mapBuffer, GfxGpuContext gc, GfxBuffer buffer, GfxReadRange* range);
+    GFX_API_FUNCTION(void, unmapBuffer, GfxGpuContext gc, GfxBuffer buffer);
     GFX_API_FUNCTION(void, cmdUpdateBuffer, GfxCommand cmd, GfxBuffer buffer, U64 dstOffset, GfxBuffer srcBuffer, U64 srcOffset, U64 size);
     GFX_API_FUNCTION(void, cmdUpdateSubresource, GfxCommand cmd, GfxTexture texture, GfxBuffer srcBuffer, GfxSubResourceDataDesc* desc);
     GFX_API_FUNCTION(void, cmdCopySubresource, GfxCommand cmd, GfxBuffer dstBuffer, GfxTexture texture, GfxSubResourceDataDesc* desc);
-    GFX_API_FUNCTION(GfxTexture, addTexture, GfxContext gc, GfxTextureDesc* desc);
-    GFX_API_FUNCTION(void, removeTexture, GfxContext gc, GfxTexture texture);
+    GFX_API_FUNCTION(GfxTexture, addTexture, GfxGpuContext gc, GfxTextureDesc* desc);
+    GFX_API_FUNCTION(void, removeTexture, GfxGpuContext gc, GfxTexture texture);
     GFX_API_FUNCTION(void, addVirtualTexture, GfxCommand cmd, GfxTextureDesc* desc, GfxTexture textures, void* image_data);
     //
 
-    GFX_API_FUNCTION(GfxRenderTarget, addRenderTarget, GfxContext gc, GfxRenderTargetDesc* desc);
-    GFX_API_FUNCTION(void, removeRenderTarget, GfxContext gc, GfxRenderTarget rendertarget);
-    GFX_API_FUNCTION(GfxSampler, addSampler, GfxContext gc, GfxSamplerDesc* desc);
-    GFX_API_FUNCTION(void, removeSampler, GfxContext gc, GfxSampler sampler);
+    GFX_API_FUNCTION(GfxRenderTarget, addRenderTarget, GfxGpuContext gc, GfxRenderTargetDesc* desc);
+    GFX_API_FUNCTION(void, removeRenderTarget, GfxGpuContext gc, GfxRenderTarget rendertarget);
+    GFX_API_FUNCTION(GfxSampler, addSampler, GfxGpuContext gc, GfxSamplerDesc* desc);
+    GFX_API_FUNCTION(void, removeSampler, GfxGpuContext gc, GfxSampler sampler);
 
     // shader operations
-    GFX_API_FUNCTION(GfxShader, addShaderBinary, GfxContext gc, GfxShaderDesc* desc);
-    GFX_API_FUNCTION(void, removeShader, GfxContext gc, GfxShader shader);
+    GFX_API_FUNCTION(GfxShader, addShaderBinary, GfxGpuContext gc, GfxShaderDesc* desc);
+    GFX_API_FUNCTION(void, removeShader, GfxGpuContext gc, GfxShader shader);
 
-    GFX_API_FUNCTION(GfxRootSignature, addRootSignature, GfxContext gc, GfxRootSignatureDesc* desc);
-    GFX_API_FUNCTION(void, removeRootSignature, GfxContext gc, GfxRootSignature rootsignature);
+    GFX_API_FUNCTION(GfxRootSignature, addRootSignature, GfxGpuContext gc, GfxRootSignatureDesc* desc);
+    GFX_API_FUNCTION(void, removeRootSignature, GfxGpuContext gc, GfxRootSignature rootsignature);
 
     // pipeline operations
-    GFX_API_FUNCTION(GfxPipeline, addPipeline, GfxContext gc, GfxPipelineDesc* desc);
-    GFX_API_FUNCTION(void, removePipeline, GfxContext gc, GfxPipeline pipeline);
-    GFX_API_FUNCTION(GfxPipelineCache, addPipelineCache, GfxContext gc, GfxPipelineCacheDesc* desc);
-    GFX_API_FUNCTION(void, getPipelineCacheData, GfxContext gc, GfxPipelineCache pipelinecache, U64* out_size, void* out_data);
-    GFX_API_FUNCTION(void, removePipelineCache, GfxContext gc, GfxPipelineCache pipelinecache);
+    GFX_API_FUNCTION(GfxPipeline, addPipeline, GfxGpuContext gc, GfxPipelineDesc* desc);
+    GFX_API_FUNCTION(void, removePipeline, GfxGpuContext gc, GfxPipeline pipeline);
+    GFX_API_FUNCTION(GfxPipelineCache, addPipelineCache, GfxGpuContext gc, GfxPipelineCacheDesc* desc);
+    GFX_API_FUNCTION(void, getPipelineCacheData, GfxGpuContext gc, GfxPipelineCache pipelinecache, U64* out_size, void* out_data);
+    GFX_API_FUNCTION(void, removePipelineCache, GfxGpuContext gc, GfxPipelineCache pipelinecache);
 
     // descriptor set operations
-    GFX_API_FUNCTION(GfxDescriptorSet, addDescriptorSet, GfxContext gc, GfxDescriptorSetDesc* desc);
-    GFX_API_FUNCTION(void, removeDescriptorSet, GfxContext gc, GfxDescriptorSet descriptorset);
-    GFX_API_FUNCTION(void, updateDescriptorSet, GfxContext gc, U32 index, GfxDescriptorSet descriptorset, U32 count, GfxDescriptorData* params);
+    GFX_API_FUNCTION(GfxDescriptorSet, addDescriptorSet, GfxGpuContext gc, GfxDescriptorSetDesc* desc);
+    GFX_API_FUNCTION(void, removeDescriptorSet, GfxGpuContext gc, GfxDescriptorSet descriptorset);
+    GFX_API_FUNCTION(void, updateDescriptorSet, GfxGpuContext gc, U32 index, GfxDescriptorSet descriptorset, U32 count, GfxDescriptorData* params);
 
     // command buffer operations
-    GFX_API_FUNCTION(void, resetCommandPool, GfxContext gc, GfxCommandPool commandpool);
+    GFX_API_FUNCTION(void, resetCommandPool, GfxGpuContext gc, GfxCommandPool commandpool);
     GFX_API_FUNCTION(void, beginCommand, GfxCommand cmd);
     GFX_API_FUNCTION(void, endCommand, GfxCommand cmd);
     GFX_API_FUNCTION(void, cmdBindRenderTargets, GfxCommand cmd, U32 render_target_count, GfxRenderTarget* renderTargets, GfxRenderTarget depth_stencil, GfxLoadActionsDesc* loadActions, U32* color_array_slices, U32* color_mip_slices, U32 depth_array_slice, U32 depth_mip_slice);
@@ -988,32 +1387,32 @@ struct GfxApi
     GFX_API_FUNCTION(void, cmdUpdateVirtualTexture, GfxCommand cmd, GfxTexture texture, U32 current_image);
 
     // queue/fence/swapchain operations
-    GFX_API_FUNCTION(void, acquireNextImage, GfxContext gc, GfxSwapChain swapchain, GfxSemaphore signal_semaphore, GfxFence fence, U32* out_image_index);
+    GFX_API_FUNCTION(void, acquireNextImage, GfxGpuContext gc, GfxSwapChain swapchain, GfxSemaphore signal_semaphore, GfxFence fence, U32* out_image_index);
     GFX_API_FUNCTION(void, queueSubmit, GfxQueue queue, GfxQueueSubmitDesc* desc);
     GFX_API_FUNCTION(void, queuePresent, GfxQueue queue, GfxQueuePresentDesc* desc);
     GFX_API_FUNCTION(void, waitQueueIdle, GfxQueue queue);
-    GFX_API_FUNCTION(GfxFenceStatus, getFenceStatus, GfxContext gc, GfxFence fence);
-    GFX_API_FUNCTION(void, waitForFences, GfxContext gc, U32 count, GfxFence* fences);
-    GFX_API_FUNCTION(void, toggleVSync, GfxContext gc, GfxSwapChain swapchain);
+    GFX_API_FUNCTION(GfxFenceStatus, getFenceStatus, GfxGpuContext gc, GfxFence fence);
+    GFX_API_FUNCTION(void, waitForFences, GfxGpuContext gc, U32 count, GfxFence* fences);
+    GFX_API_FUNCTION(void, toggleVSync, GfxGpuContext gc, GfxSwapChain swapchain);
 
     //Returns the recommended format for the swapchain.
     //If true is passed for the hintHDR parameter, it will return an HDR format IF the platform supports it
     //If false is passed or the platform does not support HDR a non HDR format is returned.
     //If true is passed for the hintSrgb parameter, it will return format that is will do gamma correction automatically
     //If false is passed for the hintSrgb parameter the gamma correction should be done as a postprocess step before submitting image to swapchain
-    GFX_API_FUNCTION(TinyImageFormat, getRecommendedSwapchainFormat, bool hintHDR, bool hintSRGB)
+    GFX_API_FUNCTION(TinyImageFormat, getRecommendedSwapchainFormat, bool hintHDR, bool hintSRGB);
 
     // indirect draw operations
-    GFX_API_FUNCTION(GfxCommandSignature, addIndirectCommandSignature, GfxContext gc, GfxCommandSignatureDesc* desc);
-    GFX_API_FUNCTION(void, removeIndirectCommandSignature, GfxContext gc, GfxCommandSignature cmdsignature);
+    GFX_API_FUNCTION(GfxCommandSignature, addIndirectCommandSignature, GfxGpuContext gc, GfxCommandSignatureDesc* desc);
+    GFX_API_FUNCTION(void, removeIndirectCommandSignature, GfxGpuContext gc, GfxCommandSignature cmdsignature);
     GFX_API_FUNCTION(void, cmdExecuteIndirect, GfxCommand cmd, GfxCommandSignature cmdsignature, U32 max_cmd_count, GfxBuffer indirect_buffer, U64 buffer_offset, GfxBuffer counter_buffer, U64 counter_buffer_offset);
 
     //
     // GPU Query Interface
     //
     GFX_API_FUNCTION(F64, getTimestampFrequency, GfxQueue queue);
-    GFX_API_FUNCTION(GfxQueryPool, addQueryPool, GfxContext gc, GfxQueryPoolDesc* desc);
-    GFX_API_FUNCTION(void, removeQueryPool, GfxContext gc, GfxQueryPool querypool);
+    GFX_API_FUNCTION(GfxQueryPool, addQueryPool, GfxGpuContext gc, GfxQueryPoolDesc* desc);
+    GFX_API_FUNCTION(void, removeQueryPool, GfxGpuContext gc, GfxQueryPool querypool);
     GFX_API_FUNCTION(void, cmdResetQueryPool, GfxCommand cmd, GfxQueryPool querypool, U32 start_query, U32 query_count);
     GFX_API_FUNCTION(void, cmdBeginQuery, GfxCommand cmd, GfxQueryPool querypool, GfxQueryDesc* desc);
     GFX_API_FUNCTION(void, cmdEndQuery, GfxCommand cmd, GfxQueryPool querypool, GfxQueryDesc* desc);
@@ -1021,8 +1420,8 @@ struct GfxApi
     //
     // Stats Info Interface
     //
-    GFX_API_FUNCTION(void, calculateMemoryStats, MemArena* arena, GfxContext gc, String8List* out_stats);
-    GFX_API_FUNCTION(void, calculateMemoryUse, GfxContext gc, U64* out_usedbytes, U64* out_totalallocatedbytes);
+    GFX_API_FUNCTION(void, calculateMemoryStats, MemArena* arena, GfxGpuContext gc, String8List* out_stats);
+    GFX_API_FUNCTION(void, calculateMemoryUse, GfxGpuContext gc, U64* out_usedbytes, U64* out_totalallocatedbytes);
     //
     // Debug Marker Interface
     //
@@ -1033,10 +1432,10 @@ struct GfxApi
     //
     // Resource Debug Naming Interface
     //
-    GFX_API_FUNCTION(void, setBufferName, GfxContext gc, GfxBuffer buffer, String8 name);
-    GFX_API_FUNCTION(void, setTextureName, GfxContext gc, GfxTexture texture, String8 name);
-    GFX_API_FUNCTION(void, setRenderTargetName, GfxContext gc, GfxRenderTarget rendertarget, String8 name);
-    GFX_API_FUNCTION(void, setPipelineName, GfxContext gc, GfxPipeline pipeline, String8 name);
+    GFX_API_FUNCTION(void, setBufferName, GfxGpuContext gc, GfxBuffer buffer, String8 name);
+    GFX_API_FUNCTION(void, setTextureName, GfxGpuContext gc, GfxTexture texture, String8 name);
+    GFX_API_FUNCTION(void, setRenderTargetName, GfxGpuContext gc, GfxRenderTarget rendertarget, String8 name);
+    GFX_API_FUNCTION(void, setPipelineName, GfxGpuContext gc, GfxPipeline pipeline, String8 name);
     //
     GFX_API_FUNCTION(U32, getDescriptorIndexFromName, GfxRootSignature rootsignature, String8 name);
 };

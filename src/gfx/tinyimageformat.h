@@ -6044,7 +6044,7 @@ inline uint16_t TinyImageFormat_FloatToHalfAsUint(float f_) {
 			f.f += denorm_magic;
 
 			// and one integer subtract of the bias later, we have our final float!
-			o.u = f.u - denorm_magicU;
+			o.u = (uint16_t)(f.u - denorm_magicU);
 		} else {
 			uint32_t mant_odd = (f.u >> 13) & 1; // resulting mantissa is odd
 
@@ -6053,7 +6053,7 @@ inline uint16_t TinyImageFormat_FloatToHalfAsUint(float f_) {
 			// rounding bias part 2
 			f.u += mant_odd;
 			// take the bits!
-			o.u = f.u >> 13;
+			o.u = (uint16_t)(f.u >> 13);
 		}
 	}
 
