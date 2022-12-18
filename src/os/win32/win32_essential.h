@@ -44,4 +44,14 @@ function DenseTime  win32_dense_time_from_file_time(FILETIME *file_time);
 function FilePropertyFlags win32_props_from_attribs(DWORD attribs);
 function DataAccessFlags win32_access_from_attribs(DWORD attribs);
 
+
+//====================
+// Win32 Threading
+//====================
+
+struct Win32Mutex
+{
+    CRITICAL_SECTION    handle;
+};
+
 #endif // WIN32_ESSENTIAL_H

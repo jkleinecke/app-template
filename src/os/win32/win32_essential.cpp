@@ -539,6 +539,40 @@ function void os_sleep_milliseconds(U32 t)
     Sleep(t);
 }
 
+function OSMutex os_init_mutex(MemArena* arena)
+{
+    Win32Mutex* mutex = push_struct(arena, Win32Mutex);
+    // default spin count will be 1500
+    InitializeCriticalSectionAndSpinCount((CRITICAL_SECTION*)&mutex->handle, 1500);
+
+    return mutex;
+}
+
+function void os_destroy_mutex(OSMutex mutex)
+{
+    auto w32_mutex = (Win32Mutex*)mutex;
+    DeleteCriticalSection((CRITICAL_SECTION*)&w32_mutex->handle);
+    w32_mutex->handle = {};
+}
+
+function void os_aquire_mutex(OSMutex mutex)
+{
+    auto w32_mutex = (Win32Mutex*)mutex;
+    EnterCriticalSection((CRITICAL_SECTION*)&w32_mutex->handle);
+}   
+
+function bool os_try_acquire_mutex(OSMutex mutex)
+{
+    auto w32_mutex = (Win32Mutex*)mutex;
+    TryEnterCriticalSection((CRITICAL_SECTION*)&w32_mutex->handle);
+}
+
+function void os_release_mutex(OSMutex mutex)
+{
+    auto w32_mutex = (Win32Mutex*)mutex;
+    LeaveCriticalSection((CRITICAL_SECTION*)&w32_mutex->handle);
+}
+
 //=======================
 // Libraries
 //=======================

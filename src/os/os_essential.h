@@ -68,6 +68,13 @@ function U64 os_now_microseconds(void);
 
 function void os_sleep_milliseconds(U32 t);
 
+typedef void* OSMutex;
+function OSMutex    os_init_mutex(MemArena* arena);
+function void       os_destroy_mutex(OSMutex mutex);
+function void       os_aquire_mutex(OSMutex mutex);
+function bool       os_try_acquire_mutex(OSMutex mutex);
+function void       os_release_mutex(OSMutex mutex);
+
 //=======================
 // Libraries
 //=======================
