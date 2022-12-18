@@ -44,6 +44,7 @@
 #endif
 
 #define GFX_USE_MULTIPLE_RENDER_APIS 0
+#define GFX_ENABLE_INSIGHT_AFTERMATH 0
 
 #if OS_WINDOWS
 //# define DX11 1
@@ -246,7 +247,8 @@ enum GfxDescriptorUpdateFrequency
     kDescriptorUpdateFreq_None = 0,
     kDescriptorUpdateFreq_PerFrame,
     kDescriptorUpdateFreq_PerBatch,
-    kDescriptorUpdateFreq_PerDraw
+    kDescriptorUpdateFreq_PerDraw,
+    kDescriptorUpdateFreq_COUNT,
 };
 
 enum GfxPipelineCacheFlags
@@ -317,12 +319,14 @@ enum GfxCullMode
     kCull_Back,
     kCull_Front,
     kCull_Both,
+    kCull_COUNT,
 };
 
 enum GfxFillMode
 {
     kFill_Solid = 0,
     kFill_Wireframe,
+    kFill_COUNT,
 };
 
 enum GfxFrontFace
@@ -341,6 +345,7 @@ enum GfxCompareMode
     kCompare_NotEqual,
     kCompare_GEqual,
     kCompare_Always,
+    kCompare_COUNT,
 };
 
 enum GfxStencilOp
@@ -353,6 +358,7 @@ enum GfxStencilOp
     kStencilOp_Desc,
     kStencilOp_IncrSat,
     kStencilOp_DecrSat,
+    kStencilOp_COUNT,
 };
 
 enum GfxBlendConstant
@@ -370,6 +376,7 @@ enum GfxBlendConstant
     kBlendConstant_SrcAlphaSaturate,
     kBlendConstant_BlendFactor,
     kBlendConstant_OneMinusBlendFactor,
+    kBlendConstant_COUNT,
 };
 
 enum GfxBlendMode
@@ -379,6 +386,7 @@ enum GfxBlendMode
     kBlendMode_ReverseSubtract,
     kBlendMode_Min,
     kBlendMode_Max,
+    kBlendMode_COUNT,
 };
 
 enum GfxBlendStateTargets
@@ -574,6 +582,7 @@ enum GfxQueueType
     kQueueType_Graphics = 0,
     kQueueType_Transfer, 
     kQueueType_Compute,
+    kQueueType_COUNT,
 };
 
 enum GfxQueueFlag
@@ -588,12 +597,46 @@ enum GfxQueuePriority
     kQueuePriority_Normal,
     kQueuePriority_High,
     kQueuePriority_GlobalRealtime,
+    kQueuePriority_COUNT,
 };
 
 enum GfxSwapChainCreationFlags
 {
     kSwapChainCreationFlag_None = 0x0,
     kSwapChainCreationFlag_EnableFoveatedRendering = 0x1,
+};
+
+enum GfxWaveOpsSupportFlags
+{
+    kWaveOpsSupportFlag_None = 0x0,
+    kWaveOpsSupportFlag_BasicBit = 0x001,
+    kWaveOpsSupportFlag_VoteBit = 0x002,
+    kWaveOpsSupportFlag_ArithmeticBit = 0x004,
+    kWaveOpsSupportFlag_BallotBit = 0x008,
+    kWaveOpsSupportFlag_ShuffleBit = 0x010,
+    kWaveOpsSupportFlag_ShuffleRelativeBit = 0x020,
+    kWaveOpsSupportFlag_ClusteredBit = 0x040,
+    kWaveOpsSupportFlag_QuadBit = 0x080,
+    kWaveOpsSupportFlag_PartitionedBitNV = 0x100,
+    kWaveOpsSupportFlag_All = 0x7FFFFFFF,
+};
+
+enum GfxGpuPresetLevel
+{
+    kGpuPreset_None = 0,
+    kGpuPreset_Office,      // means it isn't supported
+    kGpuPreset_Low,
+    kGpuPreset_Medium,
+    kGpuPreset_High,
+    kGpuPreset_Ultra,
+    kGpuPreset_COUNT,
+};
+
+enum GfxShadingRateCaps
+{
+    kShadingRateCaps_NotSupported = 0x0,
+    kShadingRateCaps_PerDraw = 0x1,
+    kShadingRateCaps_PerTile = kShadingRateCaps_PerDraw << 1, 
 };
 
 struct GfxQueryDesc
@@ -1288,6 +1331,60 @@ enum GfxApiType
 #if GLES
     kGfxApi_GLES,
 #endif
+};
+
+struct GfxVendorPreset
+{
+    char                venderId[kMax_GpuVendorStringLength];
+    char                modelId[kMax_GpuVendorStringLength];
+    char                revisionId[kMax_GpuVendorStringLength];
+    GfxGpuPresetLevel   preset_level;
+    char                gpu_name[kMax_GpuVendorStringLength];
+    char                gpu_driver_version[kMax_GpuVendorStringLength];
+    char                gpu_driver_date[kMax_GpuVendorStringLength];
+    U32                 rt_cores_count;
+};
+
+struct GfxGpuSettings
+{
+    U64                     vram;
+    U32                     uniform_buffer_alignment;
+    U32                     upload_buffer_texture_alignment;
+    U32                     upload_buffer_texture_row_alignment;
+    U32                     max_vertex_input_bindings;
+    U32                     max_root_signature_dwords;
+    U32                     wave_lane_count;
+    GfxWaveOpsSupportFlags  wave_ops_support_flags;
+    GfxVendorPreset         gpu_vendor_preset;
+    GfxShadingRate          shading_rates;
+    GfxShadingRateCaps      shading_rate_caps;
+    U32                     shading_rate_texel_width;
+    U32                     shading_rate_texel_height;
+    U32                     multidraw_indirect : 1;
+    U32                     indirect_root_constant : 1;
+    U32                     builtin_draw_id : 1;
+    U32                     indirect_cmd_buffer : 1;
+    U32                     rovs_supported : 1;
+    U32                     tessellation_supported : 1;
+    U32                     geometry_shader_supported : 1;
+    U32                     gpu_breadcrumbs : 1;
+    U32                     hdr_supported : 1;
+#if VULKAN
+    U32                     sampler_anisotropy_supported : 1;
+#endif
+#if METAL
+    U32                     argument_buffer_max_textures;
+    U32                     heaps : 1;
+    U32                     placement_heaps : 1;
+    U32                     tessellation_indirect_draw_supported : 1;
+#endif
+};
+
+struct GfxGpuCapBits
+{
+    bool canShaderReadFrom[TinyImageFormat_Count];
+    bool canShaderWriteTo[TinyImageFormat_Count];
+    bool canShaderTargetWriteTo[TinyImageFormat_Count];
 };
 
 struct GfxApi;
